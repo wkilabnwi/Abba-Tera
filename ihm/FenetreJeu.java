@@ -77,7 +77,6 @@ public class FenetreJeu extends JFrame {
         this.addKeyListener(new ClavierJeu());
         this.panneau.addMouseListener(new SourisJeu());
 
-        this.pack();
         this.setLocationRelativeTo(null);
         this.setVisible(true);
         this.setFocusable(true);

@@ -98,111 +98,61 @@ private void dessinerTerrain(Graphics2D g2) {
             int y = l * Config.TAILLE_CASE;
             Case laCase = carte.getCase(l, c);
 
-            if (joueur.aExplore(l, c)) {
+            Image imgTerrain = plaineImg;
+            String terrain = laCase.getTypeTerrain();
+            if (terrain.equals("MONTAGNE"))     imgTerrain = montagneImg;
+            else if (terrain.equals("EAU"))     imgTerrain = eauImg;
+            else if (terrain.equals("FORET"))   imgTerrain = foretImg;
 
-                Image imgTerrain = plaineImg;
-                String terrain = laCase.getTypeTerrain();
-                if (terrain.equals("MONTAGNE"))     imgTerrain = montagneImg;
-                else if (terrain.equals("EAU"))     imgTerrain = eauImg;
-                else if (terrain.equals("FORET"))   imgTerrain = foretImg;
+            if (imgTerrain != null) {
+                g2.drawImage(imgTerrain, x, y, Config.TAILLE_CASE, Config.TAILLE_CASE, null);
+            }
 
-                if (imgTerrain != null) {
-                    g2.drawImage(imgTerrain, x, y, Config.TAILLE_CASE, Config.TAILLE_CASE, null);
-                }
+            String proprio = laCase.getProprietaire();
+            Color overlay = null;
+            if (proprio.equals("JOUEUR")) {
+                overlay = COULEUR_JOUEUR;
+            } else if (proprio.equals("IA_1")) {
+                overlay = COULEUR_IA1;
+            } else if (proprio.equals("IA_2")) {
+                overlay = COULEUR_IA2;
+            } else if (proprio.equals("IA_3")) {
+                overlay = COULEUR_IA3;
+            }
 
-
-
-                if (estEnBordureDeBrouillard(l, c, joueur)) {
-                    g2.setPaint(ditherFog);
-                    g2.fillRect(x, y, Config.TAILLE_CASE, Config.TAILLE_CASE);
-                }
-
-
-                String proprio = laCase.getProprietaire();
-                Color overlay = null;
-                if (proprio.equals("JOUEUR")) {
-                    overlay = COULEUR_JOUEUR;
-                } else if (proprio.equals("IA_1")) {
-                    overlay = COULEUR_IA1;
-                } else if (proprio.equals("IA_2")) {
-                    overlay = COULEUR_IA2;
-                } else if (proprio.equals("IA_3")) {
-                    overlay = COULEUR_IA3;
-                } else if (visionsPartagees.contains(proprio)) {
-                    overlay = COULEUR_ALLIE;
-                }
-
-                if (overlay != null) {
-                    g2.setColor(overlay);
-                    g2.fillRect(x, y, Config.TAILLE_CASE, Config.TAILLE_CASE);
-                }
-
-
-                if (moteur.estEnModeConstruction() && proprio.equals("JOUEUR")
-                        && !terrain.equals("MONTAGNE") && !terrain.equals("EAU")) {
-                    g2.setColor(new Color(0, 255, 0, 60));
-                    g2.fillRect(x, y, Config.TAILLE_CASE, Config.TAILLE_CASE);
-                }
-
-            } else {
-
-                g2.setColor(Color.BLACK);
+            if (overlay != null) {
+                g2.setColor(overlay);
                 g2.fillRect(x, y, Config.TAILLE_CASE, Config.TAILLE_CASE);
             }
         }
     }
 }
 
-private boolean estEnBordureDeBrouillard(int l, int c, Faction f) {
-    for (int dl = -1; dl <= 1; dl++) {
-        for (int dc = -1; dc <= 1; dc++) {
-            if (dl == 0 && dc == 0) continue;
-            
-            int nl = l + dl;
-            int nc = c + dc;
-            
 
-            if (nl < 0 || nl >= Config.NB_LIGNES || nc < 0 || nc >= Config.NB_COLONNES) {
-                return true;
-            }
-            if (!f.aExplore(nl, nc)) {
-                return true;
-            }
-        }
+
+ private void dessinerBatiments(Graphics2D g2) {
+    for (Batiment b : moteur.getBatiments()) {
+        int x = b.getColonne() * Config.TAILLE_CASE;
+        int y = b.getLigne()   * Config.TAILLE_CASE;
+        Image img = (b instanceof QG) ? qgImg : (b instanceof Caserne) ? caserneImg : fermeImg;
+        if (img != null) g2.drawImage(img, x, y, Config.TAILLE_CASE, Config.TAILLE_CASE, null);
+        
+        g2.setColor(Color.GREEN);
+        g2.setFont(new Font("Arial", Font.BOLD, 9));
+        g2.drawString("PV:" + b.getPv(), x + 2, y + Config.TAILLE_CASE - 2);
     }
-    return false;
 }
 
-    private void dessinerBatiments(Graphics2D g2) {
-        Faction joueur = moteur.getFactionJoueur();
-        for (Batiment b : moteur.getBatiments()) {
-
-            if (joueur.aExplore(b.getLigne(), b.getColonne())) {
-                int x = b.getColonne() * Config.TAILLE_CASE;
-                int y = b.getLigne()   * Config.TAILLE_CASE;
-                Image img = (b instanceof QG) ? qgImg : (b instanceof Caserne) ? caserneImg : fermeImg;
-                if (img != null) g2.drawImage(img, x, y, Config.TAILLE_CASE, Config.TAILLE_CASE, null);
-                
-                g2.setColor(Color.GREEN);
-                g2.setFont(new Font("Arial", Font.BOLD, 9));
-                g2.drawString("PV:" + b.getPv(), x + 2, y + Config.TAILLE_CASE - 2);
-            }
-        }
-    }
-
     private void dessinerUnites(Graphics2D g2) {
-        Faction joueur = moteur.getFactionJoueur();
-        for (Unite u : moteur.getUnites()) {
+       for (Unite u : moteur.getUnites()) {
+        int x = u.getColonne() * Config.TAILLE_CASE;
+        int y = u.getLigne()   * Config.TAILLE_CASE;
 
-            if (joueur.aExplore(u.getLigne(), u.getColonne())) {
-                int x = u.getColonne() * Config.TAILLE_CASE;
-                int y = u.getLigne()   * Config.TAILLE_CASE;
+        Image img = "JOUEUR".equals(u.getCamp()) ? joueurImg : ennemiImg;
+        if (img != null) g2.drawImage(img, x, y, Config.TAILLE_CASE, Config.TAILLE_CASE, null);
 
-                Image img = "JOUEUR".equals(u.getCamp()) ? joueurImg : ennemiImg;
-                if (img != null) g2.drawImage(img, x, y, Config.TAILLE_CASE, Config.TAILLE_CASE, null);
-
-                g2.setColor(couleurFaction(u.getCamp()));
-                g2.fillOval(x + Config.TAILLE_CASE - 8, y + 2, 6, 6);
+        g2.setColor(couleurFaction(u.getCamp()));
+        g2.fillOval(x + Config.TAILLE_CASE - 8, y + 2, 6, 6);
 
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Arial", Font.BOLD, 9));
@@ -213,7 +163,6 @@ private boolean estEnBordureDeBrouillard(int l, int c, Faction f) {
                 g2.fillRect(x, y + Config.TAILLE_CASE - 4, (int) (Config.TAILLE_CASE * ratio), 4);
             }
         }
-    }
 
     private void dessinerSelection(Graphics2D g2) {
         Unite sel = moteur.getUniteSelectionneeSurMap();
