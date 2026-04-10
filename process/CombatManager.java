@@ -8,25 +8,48 @@ import java.util.Random;
 public class CombatManager {
     private Random random = new Random();
 
-public String executerCombat(Unite attaquant, Unite cible, Case caseCible) {
+    /**
+     * Ranged attack: attacker hits but does not move into the tile.
+     * Used when portee > 1.
+     */
+    public String executerAttaqueDistance(Unite attaquant, Unite cible, Case caseCible) {
         int forceAttaque = attaquant.getForce();
-        int forceDefense = cible.getForce();
-
-
         int bonusTerrain = caseCible.getBonusDefense();
-        int defenseTotale = forceDefense + bonusTerrain;
+        int defenseTotale = cible.getForce() + bonusTerrain;
 
-
-        int jetDeDes = random.nextInt(forceAttaque + defenseTotale);
-
-        if (jetDeDes < forceAttaque) {
-
-            cible.recevoirDegats(cible.getPvMax());
-            return attaquant.getType() + " a vaincu " + cible.getType() + "!";
+        int jet = random.nextInt(forceAttaque + defenseTotale);
+        if (jet < forceAttaque) {
+            cible.recevoirDegats(cible.getPvMax() / 2); 
+            if (cible.estMort()) {
+                return attaquant.getType() + " a abattu " + cible.getType() + " a distance !";
+            }
+            return attaquant.getType() + " blesse " + cible.getType() + " de loin !";
         } else {
+            return cible.getType() + " resiste au tir !";
+        }
+    }
 
+    public String executerCombat(Unite attaquant, Unite cible, Case caseCible) {
+        
+        if (attaquant.getPortee() >= 2) {
+            attaquant.consommerDeplacement(attaquant.getPointsDeplacementMax());
+            return executerAttaqueDistance(attaquant, cible, caseCible);
+        }
+
+        
+        int forceAttaque = attaquant.getForce();
+        int bonusTerrain = caseCible.getBonusDefense();
+        int defenseTotale = cible.getForce() + bonusTerrain;
+
+        int jet = random.nextInt(forceAttaque + defenseTotale);
+        if (jet < forceAttaque) {
+            cible.recevoirDegats(cible.getPvMax());
+            attaquant.consommerDeplacement(1);
+            return attaquant.getType() + " a vaincu " + cible.getType() + " !";
+        } else {
             attaquant.recevoirDegats(attaquant.getPvMax());
-            return cible.getType() + " a repoussé l'assaut!";
+            attaquant.consommerDeplacement(attaquant.getPointsDeplacementMax());
+            return cible.getType() + " a repousse l'assaut !";
         }
     }
 

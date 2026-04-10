@@ -1,6 +1,7 @@
 package process;
 
 import data.architecture.Carte;
+import data.architecture.QG;
 import data.unites.Faction;
 import java.util.List;
 
@@ -23,13 +24,19 @@ public class VictoryManager {
     }
 
     public void verifierElimination(Faction faction) {
-        if (faction.getQG() != null && faction.getQG().getPv() <= 0) {
-            faction.setEliminee(true);
+        
+        if (faction.getVilles().isEmpty()) return;
+        boolean toutesDetruites = true;
+        for (QG qg : faction.getVilles()) {
+            if (qg.getPv() > 0) {
+                toutesDetruites = false;
+                break;
+            }
         }
+        if (toutesDetruites) faction.setEliminee(true);
     }
 
     public boolean verifierDefaite(Faction joueur) {
-        return joueur.isEliminee()
-            || (joueur.getQG() != null && joueur.getQG().getPv() <= 0);
+        return joueur.isEliminee();
     }
 }

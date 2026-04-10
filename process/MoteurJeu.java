@@ -18,7 +18,6 @@ public class MoteurJeu {
     private List<Unite> unites;
     private List<Batiment> batiments;
     private List<Faction> factions;
-    // private List<IAManager> iaManagers;
 
     private DeplacementManager deplacementManager;
     private EconomieManager economieManager;
@@ -42,7 +41,6 @@ public class MoteurJeu {
         this.unites = new ArrayList<Unite>();
         this.batiments = new ArrayList<Batiment>();
         this.factions = new ArrayList<Faction>();
-        // this.iaManagers = new ArrayList<IAManager>();
         this.deplacementManager = new DeplacementManager();
         this.economieManager = new EconomieManager();
         this.victoryManager = new VictoryManager();
@@ -56,87 +54,137 @@ public class MoteurJeu {
         Faction ia1    = new Faction("IA_1",   false);
         Faction ia2    = new Faction("IA_2",   false);
         Faction ia3    = new Faction("IA_3",   false);
-        factions.add(joueur); factions.add(ia1);
-        factions.add(ia2);    factions.add(ia3);
+        factions.add(joueur);
+        factions.add(ia1);
+        factions.add(ia2);
+        factions.add(ia3);
 
+        
         QG qgJoueur = new QG(1,                    1,                      "JOUEUR");
         QG qgIA1    = new QG(1,                    Config.NB_COLONNES - 2, "IA_1");
         QG qgIA2    = new QG(Config.NB_LIGNES - 2, 1,                      "IA_2");
         QG qgIA3    = new QG(Config.NB_LIGNES - 2, Config.NB_COLONNES - 2, "IA_3");
 
-        joueur.setQG(qgJoueur); ia1.setQG(qgIA1);
-        ia2.setQG(qgIA2);       ia3.setQG(qgIA3);
+        joueur.setQG(qgJoueur);
+        ia1.setQG(qgIA1);
+        ia2.setQG(qgIA2);
+        ia3.setQG(qgIA3);
 
-        batiments.add(qgJoueur); batiments.add(qgIA1);
-        batiments.add(qgIA2);    batiments.add(qgIA3);
+        batiments.add(qgJoueur);
+        batiments.add(qgIA1);
+        batiments.add(qgIA2);
+        batiments.add(qgIA3);
 
-        // iaManagers.add(new IAManager(ia1, 0, 0));
-        // iaManagers.add(new IAManager(ia2, 0, 0));
-        // iaManagers.add(new IAManager(ia3, 0, 0));
-        mettreAJourBrouillard();
+        
+        Unite colon = new Unite(2, 1, "Colon");
+        colon.setCamp("JOUEUR");
+        unites.add(colon);
+        uniteSelectionneeSurMap = colon;
+
+        setDernierMouvement("Bienvenue ! Deplacez votre Colon et fondez une ville avec S.");
     }
 
-public void passerTour() {
+    private int[] trouverCaseLibreAdjacente(int l, int c) {
+        int[] dl = {0, 1, 0, -1};
+        int[] dc = {1, 0, -1, 0};
+        for (int dir = 0; dir < 4; dir++) {
+            int nl = l + dl[dir];
+            int nc = c + dc[dir];
+            if (!carte.estDansLaGrille(nl, nc)) continue;
+            Case laCase = carte.getCase(nl, nc);
+            if (laCase.getTypeTerrain().equals("EAU")) continue;
+            if (laCase.getTypeTerrain().equals("MONTAGNE")) continue;
+            if (getUniteAt(nl, nc) != null) continue;
+            if (getBatimentAt(nl, nc) != null) continue;
+            return new int[]{nl, nc};
+        }
+        return null;
+    }
+
+    public void passerTour() {
+        
         for (Batiment b : batiments) {
-            if (b instanceof QG && b.getProprietaire().equals("JOUEUR")) {
+            if (b instanceof QG) {
                 QG qg = (QG) b;
-                if (qg.avancerTour()) {
-                    Unite n = new Unite(qg.getLigne(), qg.getColonne(), qg.getProjetEnCours());
-                    n.setCamp("JOUEUR");
-                    unites.add(n);
+                qg.gererTour(carte);
+
+                if (qg.avancerProduction()) {
+                    String projet = qg.getProjetEnCours();
+                    if (projet.equals("Grenier") || projet.equals("Marche")) {
+                        qg.ajouterBatimentEffectue(projet);
+                        setDernierMouvement(qg.getNomVille() + ": " + projet + " termine !");
+                    } else {
+                        int[] pos = trouverCaseLibreAdjacente(qg.getLigne(), qg.getColonne());
+                        if (pos != null) {
+                            Unite n = new Unite(pos[0], pos[1], projet);
+                            n.setCamp(qg.getProprietaire());
+                            unites.add(n);
+                            setDernierMouvement(projet + " produit par " + qg.getNomVille() + " !");
+                        } else {
+                            setDernierMouvement("Pas de place pour " + projet + " !");
+                        }
+                    }
                     qg.resetProjet();
-                    mettreAJourBrouillard(); 
                 }
             }
         }
 
-
-    for (Unite u : unites) u.setABouge(false);
-
-    for (Faction f : factions) {
-        int gain = economieManager.calculerRevenuDuTour(f, carte, batiments);
-        setDernierMouvement(f.getNom() + " recoit " + gain + " or.");
-    }
-
-    // for (IAManager ia : iaManagers) ia.jouerTour(unites, carte, this);
-
-    List<Unite> morts = new ArrayList<Unite>();
-    for (Unite u : unites) { if (u.estMort()) morts.add(u); }
-    unites.removeAll(morts);
-
-    for (Faction f : factions) victoryManager.verifierElimination(f);
-
-    if (victoryManager.verifierDefaite(getFactionJoueur())) {
-        partieTerminee = true;
-        messageFinPartie = "DEFAITE - Votre QG a ete detruit !";
-    } else if (victoryManager.verifierDominationMilitaire(factions, getFactionJoueur())) {
-        partieTerminee = true;
-        messageFinPartie = "VICTOIRE MILITAIRE - Tous les ennemis sont elimines !";
-    } else if (victoryManager.verifierDominationTerritoriale(carte, getFactionJoueur())) {
-        partieTerminee = true;
-        messageFinPartie = "VICTOIRE TERRITORIALE - Vous controlez 75% de la carte !";
-    }
-
-    mettreAJourBrouillard();
-    tourActuel++;
-    setDernierMouvement("--- Tour " + tourActuel + " ---");
-
-
-    cycleUniteSuivante();
-}
-
-    public void mettreAJourBrouillard() {
-        Faction joueur = getFactionJoueur();
-        int maxL = carte.getHauteur();
-        int maxC = carte.getLargeur();
-        for (Unite u : unites) {
-            if (u.getCamp().equals("JOUEUR"))
-                joueur.explorer(u.getLigne(), u.getColonne(), maxL, maxC);
-        }
+        
         for (Batiment b : batiments) {
-            if (b.getProprietaire().equals("JOUEUR"))
-                joueur.explorer(b.getLigne(), b.getColonne(), maxL, maxC);
+            if (b instanceof QG) {
+                QG qg = (QG) b;
+                int rayon = qg.getRayonCulture();
+                for (int dl = -rayon; dl <= rayon; dl++) {
+                    for (int dc = -rayon; dc <= rayon; dc++) {
+                        int nl = qg.getLigne() + dl;
+                        int nc = qg.getColonne() + dc;
+                        if (!carte.estDansLaGrille(nl, nc)) continue;
+                        Case laCase = carte.getCase(nl, nc);
+                        if (laCase.getProprietaire().equals("NEUTRE")) {
+                            laCase.setProprietaire(qg.getProprietaire());
+                        }
+                    }
+                }
+            }
         }
+
+        
+        for (Unite u : unites) {
+            u.resetDeplacement();
+        }
+
+        
+        for (Faction f : factions) {
+            int gain = economieManager.calculerRevenuDuTour(f, carte, batiments, unites);
+            setDernierMouvement(f.getNom() + " recoit " + gain + " or.");
+        }
+
+        
+        List<Unite> morts = new ArrayList<Unite>();
+        for (Unite u : unites) {
+            if (u.estMort()) morts.add(u);
+        }
+        unites.removeAll(morts);
+
+        
+        for (Faction f : factions) {
+            victoryManager.verifierElimination(f);
+        }
+
+        if (victoryManager.verifierDefaite(getFactionJoueur())) {
+            partieTerminee = true;
+            messageFinPartie = "DEFAITE - Toutes vos villes sont tombees !";
+        } else if (victoryManager.verifierDominationMilitaire(factions, getFactionJoueur())) {
+            partieTerminee = true;
+            messageFinPartie = "VICTOIRE MILITAIRE - Tous les ennemis sont elimines !";
+        } else if (victoryManager.verifierDominationTerritoriale(carte, getFactionJoueur())) {
+            partieTerminee = true;
+            messageFinPartie = "VICTOIRE TERRITORIALE - Vous controlez 75% de la carte !";
+        }
+
+        tourActuel++;
+        setDernierMouvement("--- Tour " + tourActuel + " ---");
+        cycleUniteSuivante();
     }
 
     public int getTourActuel() { return tourActuel; }
@@ -152,7 +200,10 @@ public void passerTour() {
     public void lancerAssautGroupe(int nL, int nC) {
         if (armeeSelectionnee.isEmpty()) return;
         Faction cible = getFactionEnnemieNonAlliee();
-        if (cible == null) { setDernierMouvement("Aucun ennemi a portee !"); return; }
+        if (cible == null) {
+            setDernierMouvement("Aucun ennemi a portee !");
+            return;
+        }
         ihm.FenetreCombat fc = new ihm.FenetreCombat(null, getFactionJoueur(), cible, combatManager, this);
         fc.setVisible(true);
         armeeSelectionnee.clear();
@@ -168,12 +219,25 @@ public void passerTour() {
         return null;
     }
 
-public void deplacerUniteSelectionnee(int nL, int nC) {
-        if (uniteSelectionneeSurMap != null) {
-            deplacementManager.gererDeplacement(uniteSelectionneeSurMap, nL, nC, carte, this);
+    public void deplacerUniteSelectionnee(int nL, int nC) {
+        if (uniteSelectionneeSurMap == null) return;
 
-            mettreAJourBrouillard(); 
+        Unite cible = getUniteAt(nL, nC);
+        if (cible != null && !cible.getCamp().equals(uniteSelectionneeSurMap.getCamp())) {
+            if (!diplomatieManager.sontAllies(uniteSelectionneeSurMap.getCamp(), cible.getCamp())) {
+                
+                int dist = Math.abs(nL - uniteSelectionneeSurMap.getLigne())
+                         + Math.abs(nC - uniteSelectionneeSurMap.getColonne());
+                if (dist <= uniteSelectionneeSurMap.getPortee()) {
+                    lancerCombat(uniteSelectionneeSurMap, cible);
+                } else {
+                    setDernierMouvement("Cible hors de portee !");
+                }
+                return;
+            }
         }
+
+        deplacementManager.gererDeplacement(uniteSelectionneeSurMap, nL, nC, carte, this);
     }
 
     public void deplacerSoldatInventaire(int lig, int col) {
@@ -209,12 +273,14 @@ public void deplacerUniteSelectionnee(int nL, int nC) {
         typeUniteEnMain = null;
     }
 
-public void placerBatiment(int lig, int col) {
+    public void placerBatiment(int lig, int col) {
         if (batimentEnAttente == null) return;
         Case laCase = carte.getCase(lig, col);
         if (laCase.getProprietaire().equals("JOUEUR")
                 && !laCase.getTypeTerrain().equals("EAU")
-                && !laCase.getTypeTerrain().equals("MONTAGNE")) {
+                && !laCase.getTypeTerrain().equals("MONTAGNE")
+                && getUniteAt(lig, col) == null
+                && getBatimentAt(lig, col) == null) {
             Batiment nouveau = null;
             if (batimentEnAttente.equals("Caserne")) nouveau = new Caserne(lig, col, "JOUEUR");
             if (batimentEnAttente.equals("Ferme"))   nouveau = new Ferme(lig, col, "JOUEUR");
@@ -222,8 +288,6 @@ public void placerBatiment(int lig, int col) {
                 batiments.add(nouveau);
                 setDernierMouvement(batimentEnAttente + " construit !");
                 batimentEnAttente = null;
-
-                mettreAJourBrouillard(); 
             }
         } else {
             setDernierMouvement("Impossible de construire ici !");
@@ -279,45 +343,37 @@ public void placerBatiment(int lig, int col) {
     }
 
     public void fonderVille() {
-    Unite sel = getUniteSelectionneeSurMap();
-    
+        Unite sel = getUniteSelectionneeSurMap();
 
-    if (sel == null || !sel.getType().equals("Colon") || !sel.getCamp().equals("JOUEUR")) {
-        setDernierMouvement("Seul un Colon peut fonder une ville !");
-        return;
+        if (sel == null || !sel.getType().equals("Colon")) {
+            setDernierMouvement("Seul un Colon peut fonder une ville !");
+            return;
+        }
+
+        int l = sel.getLigne();
+        int c = sel.getColonne();
+        Case laCase = carte.getCase(l, c);
+
+        if (laCase.getTypeTerrain().equals("EAU") || laCase.getTypeTerrain().equals("MONTAGNE")) {
+            setDernierMouvement("Terrain impraticable !");
+            return;
+        }
+
+        if (getBatimentAt(l, c) != null) {
+            setDernierMouvement("Un batiment existe deja ici !");
+            return;
+        }
+
+        unites.remove(sel);
+        uniteSelectionneeSurMap = null;
+
+        QG nouvelleVille = new QG(l, c, sel.getCamp());
+        getFactionParNom(sel.getCamp()).ajouterVille(nouvelleVille);
+        batiments.add(nouvelleVille);
+
+        laCase.setProprietaire(sel.getCamp());
+        setDernierMouvement("Ville " + nouvelleVille.getNomVille() + " fondee ! (Q pour gerer)");
     }
-
-    int l = sel.getLigne();
-    int c = sel.getColonne();
-    Case laCase = carte.getCase(l, c);
-
-
-    if (laCase.getTypeTerrain().equals("EAU") || laCase.getTypeTerrain().equals("MONTAGNE")) {
-        setDernierMouvement("Impossible de bâtir sur ce terrain !");
-        return;
-    }
-
-
-    if (getBatimentAt(l, c) != null) {
-        setDernierMouvement("Il y a déjà un bâtiment ici !");
-        return;
-    }
-
-
-    unites.remove(sel);
-    uniteSelectionneeSurMap = null;
-    
-    QG nouveauQG = new QG(l, c, "JOUEUR");
-    batiments.add(nouveauQG);
-    
-
-    laCase.setProprietaire("JOUEUR");
-    
-    setDernierMouvement("Une nouvelle cité est née !");
-    
-
-    mettreAJourBrouillard();
-}
 
     public int getPuissanceTotale(String camp, String type) {
         int total = 0;
@@ -336,32 +392,40 @@ public void placerBatiment(int lig, int col) {
     }
 
     public Unite getUniteAt(int l, int c) {
-        for (Unite u : unites) { if (u.getLigne() == l && u.getColonne() == c) return u; }
+        for (Unite u : unites) {
+            if (u.isEnGarnison()) continue;
+            if (u.getLigne() == l && u.getColonne() == c) return u;
+        }
         return null;
     }
 
     public Batiment getBatimentAt(int l, int c) {
-        for (Batiment b : batiments) { if (b.getLigne() == l && b.getColonne() == c) return b; }
+        for (Batiment b : batiments) {
+            if (b.getLigne() == l && b.getColonne() == c) return b;
+        }
         return null;
     }
 
     public Faction getFactionParNom(String nom) {
-        for (Faction f : factions) { if (f.getNom().equals(nom)) return f; }
+        for (Faction f : factions) {
+            if (f.getNom().equals(nom)) return f;
+        }
         return null;
     }
 
     public void cycleUniteSuivante() {
-    this.uniteSelectionneeSurMap = null;
-    for (Unite u : unites) {
-
-        if (u.getCamp().equals("JOUEUR") && u.canMove()) { 
-            this.uniteSelectionneeSurMap = u;
-            setDernierMouvement("Au tour de : " + u.getType());
-            return;
+        this.uniteSelectionneeSurMap = null;
+        if (unites.isEmpty()) return;
+        for (Unite u : unites) {
+            if (u.isEnGarnison()) continue;
+            if (u.getCamp().equals("JOUEUR") && u.canMove()) {
+                this.uniteSelectionneeSurMap = u;
+                setDernierMouvement("Au tour de : " + u.getType() + " en (" + u.getLigne() + "," + u.getColonne() + ")");
+                return;
+            }
         }
+        setDernierMouvement("Toutes les unites ont agi. Appuyez ENTREE pour finir le tour.");
     }
-    setDernierMouvement("Toutes les unités ont agi.");
-}
 
     public Faction getFactionJoueur()        { return factions.get(0); }
     public Faction getFactionIA()            { return factions.get(1); }
@@ -387,7 +451,5 @@ public void placerBatiment(int lig, int col) {
     public void setUniteSelectionnee(String t)      { this.typeUniteEnMain = t; }
     public List<Unite> getArmeeSelectionnee()       { return armeeSelectionnee; }
     public boolean estEnModeConstruction()          { return batimentEnAttente != null; }
-public DeplacementManager getDeplacementManager() {
-    return deplacementManager;
-}
+    public DeplacementManager getDeplacementManager() { return deplacementManager; }
 }

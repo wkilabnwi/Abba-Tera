@@ -3,7 +3,9 @@ package data.unites;
 import config.Config;
 import data.architecture.Carte;
 import data.architecture.QG;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class Faction {
@@ -11,11 +13,16 @@ public class Faction {
     private int or = 300;
     private boolean estHumain;
     private boolean eliminee = false;
-    private QG qg;
+
+    
+    private List<QG> villes = new ArrayList<QG>();
 
     private int nbSoldats = 0;
     private int nbArchers = 0;
     private int nbChevaliers = 0;
+
+    
+    private int bonheur = 5;
 
     private Set<String> casesExplorees = new HashSet<String>();
 
@@ -50,7 +57,8 @@ public class Faction {
     }
 
     public int calculerEnduranceTotale() {
-        int hpQG = (qg != null) ? qg.getPv() : 0;
+        int hpQG = 0;
+        for (QG qg : villes) hpQG += qg.getPv();
         return hpQG + (nbSoldats * 10) + (nbArchers * 8) + (nbChevaliers * 20);
     }
 
@@ -58,19 +66,65 @@ public class Faction {
         if (nbSoldats > 0)          nbSoldats--;
         else if (nbArchers > 0)     nbArchers--;
         else if (nbChevaliers > 0)  nbChevaliers--;
-        else if (qg != null)        qg.setPv(Math.max(0, qg.getPv() - degats));
+        else if (!villes.isEmpty()) {
+            QG qg = villes.get(0);
+            qg.setPv(Math.max(0, qg.getPv() - degats));
+        }
         if (calculerEnduranceTotale() <= 0) this.eliminee = true;
     }
 
+    
+    public int calculerBonheur() {
+        int base = bonheur;
+        base -= Math.max(0, villes.size() - 1);
+        int militaires = nbSoldats + nbArchers + nbChevaliers;
+        base -= militaires / 3;
+        return base;
+    }
+
+    public boolean estMalheureuse() {
+        return calculerBonheur() < 0;
+    }
+
+    
+    public void ajouterVille(QG qg) {
+        villes.add(qg);
+    }
+
+    public void retirerVille(QG qg) {
+        villes.remove(qg);
+    }
+
+    public List<QG> getVilles() {
+        return villes;
+    }
+
+    /** Returns first city — kept for backward compat */
+    public QG getQG() {
+        if (villes.isEmpty()) return null;
+        return villes.get(0);
+    }
+
+    /** Kept for backward compat — adds as city */
+    public void setQG(QG qg) {
+        if (!villes.contains(qg)) villes.add(qg);
+    }
+
+    public boolean isEliminee() {
+        if (villes.isEmpty()) return eliminee;
+        boolean toutesDetruites = true;
+        for (QG qg : villes) {
+            if (qg.getPv() > 0) { toutesDetruites = false; break; }
+        }
+        return eliminee || toutesDetruites;
+    }
+
     public void setEliminee(boolean b)  { this.eliminee = b; }
-    public boolean isEliminee()         { return eliminee; }
     public boolean estHumain()          { return estHumain; }
     public String getNom()              { return nom; }
     public int getOr()                  { return or; }
     public void ajouterOr(int montant)  { this.or += montant; }
-    public void retirerOr(int montant)  { this.or -= montant; }
-    public QG getQG()                   { return qg; }
-    public void setQG(QG qg)           { this.qg = qg; }
+    public void retirerOr(int montant)  { this.or = Math.max(0, this.or - montant); }
     public int getNbSoldats()           { return nbSoldats; }
     public void ajouterSoldat()         { nbSoldats++; }
     public void retirerSoldat()         { if (nbSoldats > 0) nbSoldats--; }
@@ -80,4 +134,6 @@ public class Faction {
     public int getNbChevaliers()        { return nbChevaliers; }
     public void ajouterChevalier()      { nbChevaliers++; }
     public void retirerChevalier()      { if (nbChevaliers > 0) nbChevaliers--; }
+    public int getBonheur()             { return bonheur; }
+    public void setBonheur(int b)       { this.bonheur = b; }
 }

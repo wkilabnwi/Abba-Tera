@@ -2,7 +2,6 @@ package ihm;
 
 import config.Config;
 import data.architecture.Batiment;
-import data.architecture.Caserne;
 import data.architecture.QG;
 import data.unites.Faction;
 import data.unites.Unite;
@@ -34,21 +33,20 @@ public class FenetreJeu extends JFrame {
     private LogPanel logs;
     private FenetreGestion gestion;
     private JLabel lblInfo;
+    private JLabel lblTour;
 
     public FenetreJeu(MoteurJeu moteurRecu) {
         this.moteur = moteurRecu;
         this.setUndecorated(true);
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
         this.panneau = new PanneauJeu(this.moteur);
         this.logs    = new LogPanel();
         this.gestion = new FenetreGestion();
 
         this.logs.setPreferredSize(new java.awt.Dimension(Config.LARGEUR_ECRAN, 50));
 
-        Timer timerEco = new Timer(15000, new TimerEcoAction());
-        timerEco.start();
-
-
+        
         JPanel infoPanel = new JPanel(new BorderLayout());
         infoPanel.setBackground(new Color(25, 25, 25));
         infoPanel.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
@@ -57,14 +55,18 @@ public class FenetreJeu extends JFrame {
         lblInfo.setForeground(Color.YELLOW);
         lblInfo.setFont(new Font("Arial", Font.BOLD, 14));
 
+        lblTour = new JLabel("Tour 1", SwingConstants.CENTER);
+        lblTour.setForeground(Color.CYAN);
+        lblTour.setFont(new Font("Arial", Font.BOLD, 14));
+
         JLabel lblControls = new JLabel(
-            "ESC=Pause  A=Armee  Q=QG  C=Caserne  D=Diplomatie  ENTER=Fin de tour  "
-            + "Clic=Unite  Clic Droit=Assaut",
+            "ESC=Pause  D=Diplo  Q=Cite  S=Fonder  ENTREE=Fin de tour  Fleches=Deplacer  Clic=Selectionner",
             SwingConstants.RIGHT);
         lblControls.setForeground(Color.LIGHT_GRAY);
         lblControls.setFont(new Font("Arial", Font.PLAIN, 11));
 
         infoPanel.add(lblInfo, BorderLayout.WEST);
+        infoPanel.add(lblTour, BorderLayout.CENTER);
         infoPanel.add(lblControls, BorderLayout.EAST);
 
         this.setTitle("Abat-Terra - Conquete");
@@ -78,8 +80,8 @@ public class FenetreJeu extends JFrame {
         this.panneau.addMouseListener(new SourisJeu());
 
         this.setLocationRelativeTo(null);
-        this.setVisible(true);
         this.setFocusable(true);
+        this.setVisible(true);
         this.requestFocusInWindow();
 
         rafraichir();
@@ -88,7 +90,6 @@ public class FenetreJeu extends JFrame {
     public void rafraichir() {
         Faction f = moteur.getFactionJoueur();
         if (f == null) return;
-
 
         StringBuilder sb = new StringBuilder();
         sb.append("  OR: ").append(f.getOr());
@@ -99,31 +100,22 @@ public class FenetreJeu extends JFrame {
         for (Faction faction : moteur.getFactions()) {
             if (faction.getNom().equals("JOUEUR")) continue;
             sb.append("  | ").append(faction.getNom());
-            if (faction.isEliminee()) {
-                sb.append("[X]");
-            } else if (moteur.getDiplomatieManager().sontAllies("JOUEUR", faction.getNom())) {
-                sb.append("[ALLIE]");
-            } else {
-                sb.append("[ENNEMI]");
-            }
+            if (faction.isEliminee()) sb.append("[X]");
+            else if (moteur.getDiplomatieManager().sontAllies("JOUEUR", faction.getNom())) sb.append("[ALLIE]");
+            else sb.append("[ENNEMI]");
         }
+
         lblInfo.setText(sb.toString());
+        lblTour.setText("Tour " + moteur.getTourActuel());
 
         String msg = moteur.getDernierMouvement();
-        if (msg != null && !msg.isEmpty()) {
-            logs.ajouterLog(msg);
-        }
+        if (msg != null && !msg.isEmpty()) logs.ajouterLog(msg);
 
         panneau.repaint();
-
-
         traiterPropositionsAlliance();
 
-
         if (moteur.isPartieTerminee()) {
-            JOptionPane.showMessageDialog(this,
-                moteur.getMessageFinPartie(), "Fin de partie",
-                JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, moteur.getMessageFinPartie());
             System.exit(0);
         }
     }
@@ -132,25 +124,10 @@ public class FenetreJeu extends JFrame {
         List<Faction> propositions = new ArrayList<Faction>(moteur.getPropositionsAlliance());
         for (Faction ia : propositions) {
             int rep = JOptionPane.showConfirmDialog(this,
-                ia.getNom() + " vous propose une alliance.\n"
-                + "Accepter ? (Droit de passage + vision + transferts actives)",
-                "Proposition d'alliance", JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
-            if (rep == JOptionPane.YES_OPTION) {
-                moteur.accepterAlliance(ia);
-            } else {
-                moteur.refuserAlliance(ia);
-            }
-        }
-    }
-
-
-
-
-
-    private class TimerEcoAction implements ActionListener {
-        public void actionPerformed(ActionEvent e) {
-            rafraichir();
+                ia.getNom() + " propose une alliance.",
+                "Diplomatie", JOptionPane.YES_NO_OPTION);
+            if (rep == JOptionPane.YES_OPTION) moteur.accepterAlliance(ia);
+            else moteur.refuserAlliance(ia);
         }
     }
 
@@ -159,91 +136,75 @@ public class FenetreJeu extends JFrame {
             int code = e.getKeyCode();
             Unite sel = moteur.getUniteSelectionneeSurMap();
 
+            
             if (sel != null && sel.getCamp().equals("JOUEUR")) {
-                int nouvelleLig = sel.getLigne();
-                int nouvelleCol = sel.getColonne();
-                boolean moveAttempted = false;
-               
-                if (code == KeyEvent.VK_UP) {
-                    nouvelleLig--;
-                    moveAttempted = true;
-                } else if (code == KeyEvent.VK_DOWN) {
-                    nouvelleLig++;
-                    moveAttempted = true;
-                } else if (code == KeyEvent.VK_LEFT) {
-                    nouvelleCol--;
-                    moveAttempted = true;
-                } else if (code == KeyEvent.VK_RIGHT) {
-                    nouvelleCol++;
-                    moveAttempted = true;
-                }
+                int nL = sel.getLigne();
+                int nC = sel.getColonne();
+                boolean move = false;
 
-                if (moveAttempted) {
+                if (code == KeyEvent.VK_UP)    { nL--; move = true; }
+                else if (code == KeyEvent.VK_DOWN)  { nL++; move = true; }
+                else if (code == KeyEvent.VK_LEFT)  { nC--; move = true; }
+                else if (code == KeyEvent.VK_RIGHT) { nC++; move = true; }
 
-                    moteur.deplacerUniteSelectionnee(nouvelleLig, nouvelleCol);
-                    
-
+                if (move) {
+                    moteur.deplacerUniteSelectionnee(nL, nC);
                     if (!sel.canMove()) {
                         moteur.cycleUniteSuivante();
                     }
+                    rafraichir();
+                    return;
                 }
             }
 
-            if (code == KeyEvent.VK_ESCAPE) {
-                gestion.setVisible(true);
+            
+            if (code == KeyEvent.VK_SPACE) {
+                if (sel != null) {
+                    sel.setABouge(true);
+                }
+                moteur.cycleUniteSuivante();
             }
 
-            if (code == KeyEvent.VK_A) {
-                new FenetreArmee(FenetreJeu.this, moteur).setVisible(true);
-            }
-
+            if (code == KeyEvent.VK_ESCAPE) gestion.setVisible(true);
             if (code == KeyEvent.VK_D) {
                 new FenetreDiplomatie(FenetreJeu.this, moteur).setVisible(true);
+                FenetreJeu.this.requestFocusInWindow();
             }
-
-            if (code == KeyEvent.VK_Q) {
-                boolean trouve = false;
-                for (Batiment b : moteur.getBatiments()) {
-                    if (b instanceof QG && b.getProprietaire().equals("JOUEUR")) {
-                        new FenetreAchat(FenetreJeu.this, moteur, "QG").setVisible(true);
-                        trouve = true;
-                        break;
-                    }
-                }
-                if (!trouve) moteur.setDernierMouvement("Vous n'avez pas de QG !");
+            if (code == KeyEvent.VK_S) {
+                moteur.fonderVille();
             }
-
-            if (code == KeyEvent.VK_C) {
-                boolean trouve = false;
-                for (Batiment b : moteur.getBatiments()) {
-                    if (b instanceof Caserne && b.getProprietaire().equals("JOUEUR")) {
-                        new FenetreAchat(FenetreJeu.this, moteur, "Caserne").setVisible(true);
-                        trouve = true;
-                        break;
-                    }
-                }
-                if (!trouve) moteur.setDernierMouvement("Construisez d'abord une Caserne !");
-            }
-             if (code == KeyEvent.VK_S) {
-                    moteur.fonderVille();
-                    rafraichir();
-                }
-
             if (code == KeyEvent.VK_ENTER) {
                 moteur.passerTour();
             }
 
-            requestFocusInWindow();
+            
+            if (code == KeyEvent.VK_Q || code == KeyEvent.VK_C) {
+                QG city = null;
+                for (Batiment b : moteur.getBatiments()) {
+                    if (b instanceof QG && b.getProprietaire().equals("JOUEUR")) {
+                        city = (QG) b;
+                        break;
+                    }
+                }
+                if (city != null) {
+                    new FenetreCite(FenetreJeu.this, moteur, city).setVisible(true);
+                    FenetreJeu.this.requestFocusInWindow();
+                }
+            }
+
             rafraichir();
         }
     }
 
     private class SourisJeu extends MouseAdapter {
         public void mousePressed(MouseEvent e) {
+            FenetreJeu.this.requestFocusInWindow();
+
             int col = e.getX() / Config.TAILLE_CASE;
             int lig = e.getY() / Config.TAILLE_CASE;
 
-             if (SwingUtilities.isRightMouseButton(e)) {
+            if (SwingUtilities.isRightMouseButton(e)) {
+                
                 Unite u = moteur.getUniteAt(lig, col);
                 if (u != null && "JOUEUR".equals(u.getCamp())) {
                     moteur.ajouterUniteAuCombat(u);
@@ -251,50 +212,33 @@ public class FenetreJeu extends JFrame {
             } else {
                 if (moteur.aUniteEnMain()) {
                     moteur.deplacerSoldatInventaire(lig, col);
-
                 } else if (moteur.estEnModeConstruction()) {
                     moteur.placerBatiment(lig, col);
-
-                } else if (moteur.getUniteSelectionneeSurMap() != null) {
-                    moteur.deplacerUniteSelectionnee(lig, col);
-                    moteur.cycleUniteSuivante();
-
                 } else {
                     Unite u = moteur.getUniteAt(lig, col);
                     Batiment b = moteur.getBatimentAt(lig, col);
+                    Unite sel = moteur.getUniteSelectionneeSurMap();
 
                     if (u != null && "JOUEUR".equals(u.getCamp())) {
                         moteur.setUniteSelectionneeSurMap(u);
-                        moteur.setDernierMouvement(
-                            u.getType() + " selectionne. Cliquez pour deplacer.");
-
-                    } else if (u != null && !"JOUEUR".equals(u.getCamp())) {
-                        if (!moteur.getArmeeSelectionnee().isEmpty()) {
-                            moteur.lancerAssautGroupe(lig, col);
-                        } else {
-                            moteur.setDernierMouvement(
-                                "Clic droit sur vos unites pour preparer l'assaut !");
+                    } else if (u != null && sel != null && sel.getCamp().equals("JOUEUR")) {
+                        if (!moteur.getDiplomatieManager().sontAllies(sel.getCamp(), u.getCamp())) {
+                            moteur.deplacerUniteSelectionnee(lig, col);
+                            Unite apres = moteur.getUniteSelectionneeSurMap();
+                            if (apres == null || !apres.canMove()) moteur.cycleUniteSuivante();
                         }
-
                     } else if (b != null && "JOUEUR".equals(b.getProprietaire())) {
                         if (b instanceof QG) {
-                            new FenetreAchat(FenetreJeu.this, moteur, "QG").setVisible(true);
-                        } else if (b instanceof Caserne) {
-                            new FenetreAchat(FenetreJeu.this, moteur, "Caserne").setVisible(true);
+                            new FenetreCite(FenetreJeu.this, moteur, (QG) b).setVisible(true);
+                            FenetreJeu.this.requestFocusInWindow();
                         }
-
-                    } else if (b != null && !"JOUEUR".equals(b.getProprietaire())) {
-                        if (!moteur.getArmeeSelectionnee().isEmpty()) {
-                            moteur.lancerAssautGroupe(lig, col);
-                        } else {
-                            moteur.setDernierMouvement(
-                                "Preparez un assaut (clic droit sur vos unites) !");
-                        }
+                    } else if (sel != null) {
+                        moteur.deplacerUniteSelectionnee(lig, col);
+                        Unite apres = moteur.getUniteSelectionneeSurMap();
+                        if (apres == null || !apres.canMove()) moteur.cycleUniteSuivante();
                     }
                 }
             }
-
-            requestFocusInWindow();
             rafraichir();
         }
     }
