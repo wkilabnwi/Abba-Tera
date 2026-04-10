@@ -140,7 +140,7 @@ public class FenetreCite extends JDialog {
         pUnits.add(creerBoutonProd("Chevalier", 120, 5));
         pUnits.add(creerBoutonProd("Colon",     200, 8));
 
-        JPanel pBuilds = new JPanel(new GridLayout(2, 2, 5, 5));
+        JPanel pBuilds = new JPanel(new GridLayout(3, 2, 5, 5));
         pBuilds.setBorder(BorderFactory.createTitledBorder(null, "BATIMENTS", 0, 0, null, Color.YELLOW));
 
         if (!qg.hasBuilding("Grenier")) {
@@ -153,6 +153,7 @@ public class FenetreCite extends JDialog {
         } else {
             pBuilds.add(makeBuiltLabel("Marche"));
         }
+        pBuilds.add(creerBoutonConstruction("Mine", 100));
 
         pBottom.add(pUnits);
         pBottom.add(pBuilds);
@@ -163,6 +164,12 @@ public class FenetreCite extends JDialog {
         JLabel l = new JLabel(nom + ": OK", SwingConstants.CENTER);
         l.setForeground(Color.GREEN);
         return l;
+    }
+
+    private JButton creerBoutonConstruction(String nom, int prix) {
+        JButton b = new JButton(nom + " (" + prix + "or) - sur carte");
+        b.addActionListener(new CommanderConstructionAction(nom, prix));
+        return b;
     }
 
     private JButton creerBoutonProd(String nom, int prix, int tours) {
@@ -181,6 +188,26 @@ public class FenetreCite extends JDialog {
     void rafraichirFenetre() {
         dispose();
         new FenetreCite((JFrame) getOwner(), moteur, qg).setVisible(true);
+    }
+
+    private class CommanderConstructionAction implements ActionListener {
+        private String nom;
+        private int prix;
+
+        public CommanderConstructionAction(String nom, int prix) {
+            this.nom  = nom;
+            this.prix = prix;
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            if (moteur.getFactionJoueur().getOr() < prix) {
+                JOptionPane.showMessageDialog(FenetreCite.this, "Or insuffisant !");
+                return;
+            }
+            moteur.getFactionJoueur().retirerOr(prix);
+            moteur.preparerConstruction(nom);
+            dispose();
+        }
     }
 
     private class LancerProductionAction implements ActionListener {

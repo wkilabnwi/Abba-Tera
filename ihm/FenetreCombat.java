@@ -1,188 +1,198 @@
 package ihm;
 
+import data.architecture.Case;
+import data.unites.Unite;
+import process.CombatManager;
+import process.MoteurJeu;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.Timer;
+import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.SwingConstants;
-import data.unites.Faction;
-import process.CombatManager;
-import process.MoteurJeu;
 
 public class FenetreCombat extends JDialog {
 
+    private Unite attaquant;
+    private Unite defenseur;
+    private Case caseCible;
     private CombatManager combatManager;
-    private Faction fJoueur;
-    private Faction fEnnemie;
     private MoteurJeu moteur;
 
     private JLabel lblStatut;
-    private JProgressBar barreJoueur;
-    private JProgressBar barreEnnemi;
+    private JProgressBar barreAttaquant;
+    private JProgressBar barreDefenseur;
     private JPanel pActions;
+    private boolean combatTermine = false;
 
-    public FenetreCombat(JFrame parent, Faction joueur, Faction ennemi,
-                         CombatManager cm, MoteurJeu moteur) {
-        super(parent, "Champ de Bataille", true);
-        this.fJoueur = joueur;
-        this.fEnnemie = ennemi;
+    public FenetreCombat(JFrame parent, Unite attaquant, Unite defenseur,
+                         Case caseCible, CombatManager cm, MoteurJeu moteur) {
+        super(parent, "Combat Tactique", true);
+        this.attaquant     = attaquant;
+        this.defenseur     = defenseur;
+        this.caseCible     = caseCible;
         this.combatManager = cm;
-        this.moteur = moteur;
+        this.moteur        = moteur;
 
-        this.setSize(550, 450);
-        this.setLocationRelativeTo(parent);
-        this.setLayout(new BorderLayout());
+        setSize(520, 400);
+        setLocationRelativeTo(parent);
+        setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(new Color(20, 20, 30));
 
+        JPanel pHeader = new JPanel(new GridLayout(5, 1, 3, 3));
+        pHeader.setBackground(new Color(30, 30, 45));
+        pHeader.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
 
-        JPanel pHeader = new JPanel(new GridLayout(5, 1, 5, 5));
+        lblStatut = new JLabel("Choisissez votre action !", SwingConstants.CENTER);
+        lblStatut.setForeground(Color.YELLOW);
+        lblStatut.setFont(new Font("Monospaced", Font.BOLD, 14));
 
-        lblStatut = new JLabel("Choisissez votre attaque !", SwingConstants.CENTER);
-        lblStatut.setFont(new Font("Monospaced", Font.BOLD, 16));
+        barreAttaquant = creerBarre(attaquant, new Color(60, 120, 220));
+        barreDefenseur = creerBarre(defenseur, new Color(200, 60, 60));
 
-        barreJoueur = new JProgressBar(0, Math.max(1, fJoueur.calculerEnduranceTotale()));
-        barreJoueur.setStringPainted(true);
-        barreJoueur.setForeground(new Color(39, 174, 96));
+        JLabel lblA = makeLabel(
+            attaquant.getCamp() + " — " + attaquant.getType() +
+            "  Niv." + attaquant.getNiveau() +
+            "  Force:" + attaquant.getForce() +
+            "  PM:" + attaquant.getPointsDeplacement(), Color.CYAN);
 
-        barreEnnemi = new JProgressBar(0, Math.max(1, fEnnemie.calculerEnduranceTotale()));
-        barreEnnemi.setStringPainted(true);
-        barreEnnemi.setForeground(new Color(192, 57, 43));
+        JLabel lblD = makeLabel(
+            defenseur.getCamp() + " — " + defenseur.getType() +
+            "  Niv." + defenseur.getNiveau() +
+            "  Force:" + defenseur.getForce() +
+            "  Terrain:+" + caseCible.getBonusDefense(), Color.ORANGE);
 
         pHeader.add(lblStatut);
-        pHeader.add(new JLabel("VOTRE ARMÉE :"));
-        pHeader.add(barreJoueur);
-        pHeader.add(new JLabel("ARMÉE ENNEMIE :"));
-        pHeader.add(barreEnnemi);
+        pHeader.add(lblA);
+        pHeader.add(barreAttaquant);
+        pHeader.add(lblD);
+        pHeader.add(barreDefenseur);
 
+        pActions = new JPanel(new GridLayout(1, 3, 10, 0));
+        pActions.setBackground(new Color(20, 20, 30));
+        pActions.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
 
-        pActions = new JPanel(new GridLayout(2, 2, 10, 10));
-        construireBoutonsAttaque();
+        JButton btnAttaque  = makeButton("Attaquer",           new Color(160, 40, 40));
+        JButton btnGarde    = makeButton("Se Mettre en Garde", new Color(40, 100, 40));
+        JButton btnRetraite = makeButton("Retraite",           new Color(80, 80, 80));
 
-        JButton btnFuir = new JButton("Repli Tactique");
-        btnFuir.addActionListener(new FuirAction());
-
-        this.add(pHeader, BorderLayout.NORTH);
-        this.add(pActions, BorderLayout.CENTER);
-        this.add(btnFuir, BorderLayout.SOUTH);
-
-        actualiserAffichage();
-    }
-
-    private void construireBoutonsAttaque() {
-        pActions.removeAll();
-
-        int nbS = moteur.getPuissanceTotale("JOUEUR", "Soldat");
-        int nbA = moteur.getPuissanceTotale("JOUEUR", "Archer");
-        int nbC = moteur.getPuissanceTotale("JOUEUR", "Chevalier");
-
-        JButton btnSoldat = new JButton("Assaut Soldat (" + nbS + ")");
-        btnSoldat.setEnabled(nbS > 0);
-        btnSoldat.addActionListener(new AttaquerAction("Soldat"));
-
-        JButton btnArcher = new JButton("Tir Archer (" + nbA + ")");
-        btnArcher.setEnabled(nbA > 0);
-        btnArcher.addActionListener(new AttaquerAction("Archer"));
-
-        JButton btnChevalier = new JButton("Charge Chevalier (" + nbC + ")");
-        btnChevalier.setEnabled(nbC > 0);
-        btnChevalier.addActionListener(new AttaquerAction("Chevalier"));
-
-        JButton btnGarde = new JButton("Position Défensive");
+        btnAttaque.addActionListener(new AttaquerAction());
         btnGarde.addActionListener(new GardeAction());
+        btnRetraite.addActionListener(new RetraiteAction());
 
-        pActions.add(btnSoldat);
-        pActions.add(btnArcher);
-        pActions.add(btnChevalier);
+        pActions.add(btnAttaque);
         pActions.add(btnGarde);
-        pActions.revalidate();
+        pActions.add(btnRetraite);
+
+        add(pHeader, BorderLayout.CENTER);
+        add(pActions, BorderLayout.SOUTH);
+
+        actualiserBarres();
     }
 
-    private void executerTour(String typeChoisi, boolean defenseActive) {
-        if (!defenseActive) {
-            int degats = calculerDegats(typeChoisi);
-            fEnnemie.subirDegats(degats);
-            lblStatut.setText("Vos " + typeChoisi + "s infligent " + degats + " dégâts !");
-        } else {
-            lblStatut.setText("Vous renforcez vos lignes !");
-        }
+    private JButton makeButton(String texte, Color bg) {
+        JButton b = new JButton(texte);
+        b.setBackground(bg);
+        b.setForeground(Color.WHITE);
+        b.setFont(new Font("Arial", Font.BOLD, 13));
+        b.setFocusPainted(false);
+        return b;
+    }
 
-        actualiserAffichage();
+    private JProgressBar creerBarre(Unite u, Color c) {
+        JProgressBar b = new JProgressBar(0, u.getPvMax());
+        b.setValue(u.getPv());
+        b.setStringPainted(true);
+        b.setForeground(c);
+        b.setBackground(new Color(40, 40, 50));
+        return b;
+    }
 
-        if (fEnnemie.calculerEnduranceTotale() <= 0) {
-            JOptionPane.showMessageDialog(this, "VICTOIRE ! L'ennemi est décimé.");
-            dispose();
+    private JLabel makeLabel(String t, Color c) {
+        JLabel l = new JLabel(t, SwingConstants.CENTER);
+        l.setForeground(c);
+        l.setFont(new Font("Monospaced", Font.BOLD, 11));
+        return l;
+    }
+
+    private void actualiserBarres() {
+        barreAttaquant.setMaximum(attaquant.getPvMax());
+        barreAttaquant.setValue(attaquant.getPv());
+        barreAttaquant.setString(attaquant.getType() + " : " + attaquant.getPv() + "/" + attaquant.getPvMax() + " PV  XP:" + attaquant.getXP());
+        barreDefenseur.setMaximum(defenseur.getPvMax());
+        barreDefenseur.setValue(defenseur.getPv());
+        barreDefenseur.setString(defenseur.getType() + " : " + defenseur.getPv() + "/" + defenseur.getPvMax() + " PV");
+    }
+
+    private void verifierFinCombat() {
+        if (defenseur.estMort()) {
+            lblStatut.setText("Victoire ! " + attaquant.getType() + " a gagne !");
+            lblStatut.setForeground(new Color(100, 255, 100));
+            pActions.setVisible(false);
+            combatTermine = true;
+            planifierFermeture();
             return;
         }
-
-
-        int degatsEnnemi = combatManager.calculerDegatsFaction(fEnnemie, fJoueur);
-        if (defenseActive) {
-            degatsEnnemi /= 2;
+        if (attaquant.estMort()) {
+            lblStatut.setText("Defaite ! " + defenseur.getType() + " a resiste !");
+            lblStatut.setForeground(new Color(255, 80, 80));
+            pActions.setVisible(false);
+            combatTermine = true;
+            planifierFermeture();
         }
-        fJoueur.subirDegats(degatsEnnemi);
-        lblStatut.setText("L'ennemi contre-attaque : -" + degatsEnnemi + " PV !");
+    }
 
-        construireBoutonsAttaque();
-        actualiserAffichage();
+    private void planifierFermeture() {
+        Timer t = new Timer(1800, new FermetureAction());
+        t.setRepeats(false);
+        t.start();
+    }
 
-        if (fJoueur.calculerEnduranceTotale() <= 0) {
-            JOptionPane.showMessageDialog(this, "DÉFAITE... Votre armée a péri.");
+    private class FermetureAction implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
             dispose();
         }
     }
 
-    private int calculerDegats(String type) {
-        int nb = moteur.getPuissanceTotale("JOUEUR", type);
-        if (type.equals("Soldat"))    return nb * 3;
-        if (type.equals("Archer"))    return nb * 5;
-        if (type.equals("Chevalier")) return nb * 10;
-        return 0;
-    }
-
-    private void actualiserAffichage() {
-        int ej = fJoueur.calculerEnduranceTotale();
-        int ee = fEnnemie.calculerEnduranceTotale();
-
-        if (ej > barreJoueur.getMaximum()) barreJoueur.setMaximum(ej);
-        if (ee > barreEnnemi.getMaximum()) barreEnnemi.setMaximum(ee);
-
-        barreJoueur.setValue(ej);
-        barreJoueur.setString("Armée Joueur : " + ej + " PV");
-        barreEnnemi.setValue(ee);
-        barreEnnemi.setString("Défense Ennemie : " + ee + " PV");
-    }
-
-
-
     private class AttaquerAction implements ActionListener {
-        private String type;
-
-        public AttaquerAction(String type) {
-            this.type = type;
-        }
-
         public void actionPerformed(ActionEvent e) {
-            executerTour(type, false);
+            if (combatTermine) return;
+            String log = combatManager.executerCombat(attaquant, defenseur, caseCible);
+            lblStatut.setText(log);
+            lblStatut.setForeground(Color.YELLOW);
+            actualiserBarres();
+            verifierFinCombat();
         }
     }
 
     private class GardeAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
-            executerTour("Defense", true);
+            if (combatTermine) return;
+            attaquant.consommerDeplacement(attaquant.getPointsDeplacementMax());
+            lblStatut.setText(attaquant.getType() + " se met en garde !");
+            lblStatut.setForeground(new Color(100, 200, 255));
+            pActions.setVisible(false);
+            combatTermine = true;
+            planifierFermeture();
         }
     }
 
-    private class FuirAction implements ActionListener {
+    private class RetraiteAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
-            dispose();
+            attaquant.consommerDeplacement(attaquant.getPointsDeplacementMax());
+            lblStatut.setText("Retraite !");
+            lblStatut.setForeground(Color.GRAY);
+            combatTermine = true;
+            planifierFermeture();
         }
     }
 }

@@ -8,8 +8,6 @@ import data.unites.Unite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -23,7 +21,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 import process.MoteurJeu;
 
 public class FenetreJeu extends JFrame {
@@ -34,6 +31,7 @@ public class FenetreJeu extends JFrame {
     private FenetreGestion gestion;
     private JLabel lblInfo;
     private JLabel lblTour;
+    private JLabel lblUnite;
 
     public FenetreJeu(MoteurJeu moteurRecu) {
         this.moteur = moteurRecu;
@@ -46,30 +44,38 @@ public class FenetreJeu extends JFrame {
 
         this.logs.setPreferredSize(new java.awt.Dimension(Config.LARGEUR_ECRAN, 50));
 
-        
         JPanel infoPanel = new JPanel(new BorderLayout());
         infoPanel.setBackground(new Color(25, 25, 25));
         infoPanel.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
 
         lblInfo = new JLabel("", SwingConstants.LEFT);
         lblInfo.setForeground(Color.YELLOW);
-        lblInfo.setFont(new Font("Arial", Font.BOLD, 14));
+        lblInfo.setFont(new Font("Arial", Font.BOLD, 13));
 
         lblTour = new JLabel("Tour 1", SwingConstants.CENTER);
         lblTour.setForeground(Color.CYAN);
-        lblTour.setFont(new Font("Arial", Font.BOLD, 14));
+        lblTour.setFont(new Font("Arial", Font.BOLD, 13));
+
+        lblUnite = new JLabel("", SwingConstants.RIGHT);
+        lblUnite.setForeground(new Color(180, 255, 180));
+        lblUnite.setFont(new Font("Arial", Font.BOLD, 12));
 
         JLabel lblControls = new JLabel(
-            "ESC=Pause  D=Diplo  Q=Cite  S=Fonder  ENTREE=Fin de tour  Fleches=Deplacer  Clic=Selectionner",
+            "Fleches=Deplacer  ESPACE=Passer  ENTREE=Fin tour  D=Diplo  Q=Cite  S=Fonder  F=Brouillard  ESC=Pause",
             SwingConstants.RIGHT);
-        lblControls.setForeground(Color.LIGHT_GRAY);
-        lblControls.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblControls.setForeground(Color.DARK_GRAY);
+        lblControls.setFont(new Font("Arial", Font.PLAIN, 10));
+
+        JPanel pRight = new JPanel(new BorderLayout());
+        pRight.setOpaque(false);
+        pRight.add(lblUnite, BorderLayout.NORTH);
+        pRight.add(lblControls, BorderLayout.SOUTH);
 
         infoPanel.add(lblInfo, BorderLayout.WEST);
         infoPanel.add(lblTour, BorderLayout.CENTER);
-        infoPanel.add(lblControls, BorderLayout.EAST);
+        infoPanel.add(pRight, BorderLayout.EAST);
 
-        this.setTitle("Abat-Terra - Conquete");
+        this.setTitle("Abat-Terra");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLayout(new BorderLayout());
         this.add(infoPanel, BorderLayout.NORTH);
@@ -96,6 +102,7 @@ public class FenetreJeu extends JFrame {
         sb.append("  | S:").append(f.getNbSoldats());
         sb.append(" A:").append(f.getNbArchers());
         sb.append(" C:").append(f.getNbChevaliers());
+        sb.append("  | Bonheur:").append(f.calculerBonheur());
 
         for (Faction faction : moteur.getFactions()) {
             if (faction.getNom().equals("JOUEUR")) continue;
@@ -107,6 +114,16 @@ public class FenetreJeu extends JFrame {
 
         lblInfo.setText(sb.toString());
         lblTour.setText("Tour " + moteur.getTourActuel());
+
+        Unite sel = moteur.getUniteSelectionneeSurMap();
+        if (sel != null) {
+            lblUnite.setText(sel.getType() + " Niv." + sel.getNiveau() +
+                " PV:" + sel.getPv() + "/" + sel.getPvMax() +
+                " XP:" + sel.getXP() +
+                " PM:" + sel.getPointsDeplacement());
+        } else {
+            lblUnite.setText("Aucune unite selectionnee");
+        }
 
         String msg = moteur.getDernierMouvement();
         if (msg != null && !msg.isEmpty()) logs.ajouterLog(msg);
@@ -136,48 +153,50 @@ public class FenetreJeu extends JFrame {
             int code = e.getKeyCode();
             Unite sel = moteur.getUniteSelectionneeSurMap();
 
-            
             if (sel != null && sel.getCamp().equals("JOUEUR")) {
                 int nL = sel.getLigne();
                 int nC = sel.getColonne();
                 boolean move = false;
 
-                if (code == KeyEvent.VK_UP)    { nL--; move = true; }
+                if (code == KeyEvent.VK_UP)         { nL--; move = true; }
                 else if (code == KeyEvent.VK_DOWN)  { nL++; move = true; }
                 else if (code == KeyEvent.VK_LEFT)  { nC--; move = true; }
                 else if (code == KeyEvent.VK_RIGHT) { nC++; move = true; }
 
                 if (move) {
                     moteur.deplacerUniteSelectionnee(nL, nC);
-                    if (!sel.canMove()) {
-                        moteur.cycleUniteSuivante();
-                    }
+                    if (!sel.canMove()) moteur.cycleUniteSuivante();
                     rafraichir();
                     return;
                 }
             }
 
-            
             if (code == KeyEvent.VK_SPACE) {
-                if (sel != null) {
-                    sel.setABouge(true);
-                }
+                if (sel != null) sel.setABouge(true);
                 moteur.cycleUniteSuivante();
             }
 
-            if (code == KeyEvent.VK_ESCAPE) gestion.setVisible(true);
+            if (code == KeyEvent.VK_ESCAPE) {
+                gestion.setVisible(true);
+            }
+
             if (code == KeyEvent.VK_D) {
                 new FenetreDiplomatie(FenetreJeu.this, moteur).setVisible(true);
                 FenetreJeu.this.requestFocusInWindow();
             }
+
             if (code == KeyEvent.VK_S) {
                 moteur.fonderVille();
             }
+
             if (code == KeyEvent.VK_ENTER) {
                 moteur.passerTour();
             }
 
-            
+            if (code == KeyEvent.VK_F) {
+                panneau.toggleBrouillard();
+            }
+
             if (code == KeyEvent.VK_Q || code == KeyEvent.VK_C) {
                 QG city = null;
                 for (Batiment b : moteur.getBatiments()) {
@@ -204,7 +223,6 @@ public class FenetreJeu extends JFrame {
             int lig = e.getY() / Config.TAILLE_CASE;
 
             if (SwingUtilities.isRightMouseButton(e)) {
-                
                 Unite u = moteur.getUniteAt(lig, col);
                 if (u != null && "JOUEUR".equals(u.getCamp())) {
                     moteur.ajouterUniteAuCombat(u);
@@ -215,9 +233,9 @@ public class FenetreJeu extends JFrame {
                 } else if (moteur.estEnModeConstruction()) {
                     moteur.placerBatiment(lig, col);
                 } else {
-                    Unite u = moteur.getUniteAt(lig, col);
+                    Unite u   = moteur.getUniteAt(lig, col);
                     Batiment b = moteur.getBatimentAt(lig, col);
-                    Unite sel = moteur.getUniteSelectionneeSurMap();
+                    Unite sel  = moteur.getUniteSelectionneeSurMap();
 
                     if (u != null && "JOUEUR".equals(u.getCamp())) {
                         moteur.setUniteSelectionneeSurMap(u);

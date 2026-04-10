@@ -41,7 +41,6 @@ public class DeplacementManager {
             return;
         }
 
-        
         int cout = 1;
         if (terrain.equals("FORET") && !u.getType().equals("Chevalier")) cout = 2;
 

@@ -17,9 +17,6 @@ public class QG extends Batiment {
 
     private List<String> batimentsConstruits = new ArrayList<String>();
 
-    /**
-     * Each worker is assigned to a tile "l,c".
-     */
     private List<String> casesAssignees = new ArrayList<String>();
 
     private static final String[] NOMS_VILLES = {

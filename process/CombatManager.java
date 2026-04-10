@@ -8,10 +8,6 @@ import java.util.Random;
 public class CombatManager {
     private Random random = new Random();
 
-    /**
-     * Ranged attack: attacker hits but does not move into the tile.
-     * Used when portee > 1.
-     */
     public String executerAttaqueDistance(Unite attaquant, Unite cible, Case caseCible) {
         int forceAttaque = attaquant.getForce();
         int bonusTerrain = caseCible.getBonusDefense();
@@ -19,7 +15,7 @@ public class CombatManager {
 
         int jet = random.nextInt(forceAttaque + defenseTotale);
         if (jet < forceAttaque) {
-            cible.recevoirDegats(cible.getPvMax() / 2); 
+            cible.recevoirDegats(cible.getPvMax() / 2);
             if (cible.estMort()) {
                 return attaquant.getType() + " a abattu " + cible.getType() + " a distance !";
             }
@@ -30,13 +26,11 @@ public class CombatManager {
     }
 
     public String executerCombat(Unite attaquant, Unite cible, Case caseCible) {
-        
         if (attaquant.getPortee() >= 2) {
             attaquant.consommerDeplacement(attaquant.getPointsDeplacementMax());
             return executerAttaqueDistance(attaquant, cible, caseCible);
         }
 
-        
         int forceAttaque = attaquant.getForce();
         int bonusTerrain = caseCible.getBonusDefense();
         int defenseTotale = cible.getForce() + bonusTerrain;

@@ -6,6 +6,7 @@ import data.architecture.Carte;
 import data.architecture.Case;
 import data.architecture.Caserne;
 import data.architecture.Ferme;
+import data.architecture.Mine;
 import data.architecture.QG;
 import data.unites.Faction;
 import data.unites.Unite;
@@ -26,9 +27,15 @@ import javax.swing.JPanel;
 public class PanneauJeu extends JPanel {
 
     private MoteurJeu moteur;
+    private boolean brouillardActif = true;
+
+    public void toggleBrouillard() {
+        brouillardActif = !brouillardActif;
+        repaint();
+    }
     private Image eauImg, foretImg, montagneImg, plaineImg;
     private Image joueurImg, ennemiImg;
-    private Image qgImg, caserneImg, fermeImg;
+    private Image qgImg, caserneImg, fermeImg, mineImg;
 
     private static final Color COULEUR_JOUEUR = new Color(0,   0,   255, 55);
     private static final Color COULEUR_IA1    = new Color(220, 0,   0,   70);
@@ -47,6 +54,7 @@ public class PanneauJeu extends JPanel {
         qgImg       = lireImage("res/QG.png");
         caserneImg  = lireImage("res/Caserne.png");
         fermeImg    = lireImage("res/Ferme.png");
+        mineImg     = lireImage("res/Mine.png");
     }
 
     public static Image lireImage(String filePath) {
@@ -67,6 +75,7 @@ public class PanneauJeu extends JPanel {
         dessinerBorduresCulture(g2);
         dessinerBatiments(g2);
         dessinerUnites(g2);
+        if (brouillardActif) dessinerBrouillard(g2);
         dessinerSelection(g2);
         dessinerGrille(g2);
     }
@@ -189,11 +198,20 @@ public class PanneauJeu extends JPanel {
             if (b instanceof QG)           img = qgImg;
             else if (b instanceof Caserne) img = caserneImg;
             else if (b instanceof Ferme)   img = fermeImg;
+            else if (b instanceof Mine)    img = mineImg;
             if (img != null) {
                 g2.drawImage(img, x, y, T, T, null);
             } else {
-                g2.setColor(Color.WHITE);
-                g2.fillRect(x + 4, y + 4, T - 8, T - 8);
+                if (b instanceof Mine) {
+                    g2.setColor(new Color(120, 80, 40));
+                    g2.fillRect(x + 4, y + 4, T - 8, T - 8);
+                    g2.setColor(Color.YELLOW);
+                    g2.setFont(new Font("Arial", Font.BOLD, 9));
+                    g2.drawString("M", x + T/2 - 3, y + T/2 + 3);
+                } else {
+                    g2.setColor(Color.WHITE);
+                    g2.fillRect(x + 4, y + 4, T - 8, T - 8);
+                }
             }
             if (b instanceof QG) {
                 QG qg = (QG) b;
@@ -224,6 +242,19 @@ public class PanneauJeu extends JPanel {
             if (u.isEnGarnison()) continue;
             int x = u.getColonne() * T;
             int y = u.getLigne()   * T;
+
+            if (u.getType().equals("Creep")) {
+                g2.setColor(new Color(140, 0, 200, 200));
+                g2.fillOval(x + 4, y + 4, T - 8, T - 8);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Arial", Font.BOLD, 10));
+                g2.drawString("C", x + T/2 - 4, y + T/2 + 4);
+                float ratio = (float) u.getPv() / u.getPvMax();
+                g2.setColor(Color.RED);
+                g2.fillRect(x, y + T - 4, (int)(T * ratio), 4);
+                continue;
+            }
+
             Image img = "JOUEUR".equals(u.getCamp()) ? joueurImg : ennemiImg;
             if (img != null) {
                 g2.drawImage(img, x, y, T, T, null);
@@ -258,6 +289,19 @@ public class PanneauJeu extends JPanel {
                         sel.getLigne()   * Config.TAILLE_CASE,
                         Config.TAILLE_CASE, Config.TAILLE_CASE);
             g2.setStroke(new BasicStroke(1));
+        }
+    }
+
+    private void dessinerBrouillard(Graphics2D g2) {
+        int T = Config.TAILLE_CASE;
+        Faction joueur = moteur.getFactionJoueur();
+        for (int l = 0; l < Config.NB_LIGNES; l++) {
+            for (int c = 0; c < Config.NB_COLONNES; c++) {
+                if (!joueur.aExplore(l, c)) {
+                    g2.setColor(new Color(0, 0, 0, 200));
+                    g2.fillRect(c * T, l * T, T, T);
+                }
+            }
         }
     }
 

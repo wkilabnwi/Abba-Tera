@@ -8,6 +8,8 @@ public class Unite {
     private String type;
     private String camp;
     private boolean enGarnison = false;
+    private int xp = 0;
+    private int niveau = 1;
 
     public Unite(int l, int c, String type) {
         this.ligne = l;
@@ -17,34 +19,28 @@ public class Unite {
 
         switch (type) {
             case "Soldat":
-                this.pvMax = 10;
-                this.force = 3;
-                this.pointsDeplacementMax = 1;
-                this.portee = 1;
+                this.pvMax = 10; this.force = 3;
+                this.pointsDeplacementMax = 1; this.portee = 1;
                 break;
             case "Archer":
-                this.pvMax = 8;
-                this.force = 5;
-                this.pointsDeplacementMax = 1;
-                this.portee = 2;
+                this.pvMax = 8; this.force = 5;
+                this.pointsDeplacementMax = 1; this.portee = 2;
                 break;
             case "Chevalier":
-                this.pvMax = 20;
-                this.force = 7;
-                this.pointsDeplacementMax = 2;
-                this.portee = 1;
+                this.pvMax = 20; this.force = 7;
+                this.pointsDeplacementMax = 2; this.portee = 1;
                 break;
             case "Colon":
-                this.pvMax = 5;
-                this.force = 0;
-                this.pointsDeplacementMax = 1;
-                this.portee = 1;
+                this.pvMax = 5; this.force = 0;
+                this.pointsDeplacementMax = 1; this.portee = 1;
+                break;
+            case "Creep":
+                this.pvMax = 6; this.force = 2;
+                this.pointsDeplacementMax = 0; this.portee = 1;
                 break;
             default:
-                this.pvMax = 10;
-                this.force = 2;
-                this.pointsDeplacementMax = 1;
-                this.portee = 1;
+                this.pvMax = 10; this.force = 2;
+                this.pointsDeplacementMax = 1; this.portee = 1;
                 break;
         }
         this.pv = this.pvMax;
@@ -53,6 +49,10 @@ public class Unite {
 
     public void recevoirDegats(int d) {
         this.pv = Math.max(0, this.pv - d);
+    }
+
+    public void soigner(int soin) {
+        this.pv = Math.min(pvMax, this.pv + soin);
     }
 
     public boolean estMort() {
@@ -71,7 +71,17 @@ public class Unite {
         this.pointsDeplacement = this.pointsDeplacementMax;
     }
 
-    
+    public void gagnerXP(int montant) {
+        xp += montant;
+        if (xp >= niveau * 10) {
+            niveau++;
+            pvMax += 2;
+            pv = Math.min(pv + 2, pvMax);
+            force += 1;
+            xp = 0;
+        }
+    }
+
     public void setABouge(boolean b) {
         if (b) this.pointsDeplacement = 0;
         else   this.pointsDeplacement = this.pointsDeplacementMax;
@@ -87,9 +97,11 @@ public class Unite {
     public void setLigne(int l)             { ligne = l; }
     public void setColonne(int c)           { colonne = c; }
     public void setCamp(String camp)        { this.camp = camp; }
-    public boolean isEnGarnison()           { return enGarnison; }
-    public void setEnGarnison(boolean b)    { this.enGarnison = b; }
     public int getPortee()                  { return portee; }
     public int getPointsDeplacement()       { return pointsDeplacement; }
     public int getPointsDeplacementMax()    { return pointsDeplacementMax; }
+    public boolean isEnGarnison()           { return enGarnison; }
+    public void setEnGarnison(boolean b)    { this.enGarnison = b; }
+    public int getXP()                      { return xp; }
+    public int getNiveau()                  { return niveau; }
 }

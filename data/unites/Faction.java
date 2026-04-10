@@ -14,15 +14,14 @@ public class Faction {
     private boolean estHumain;
     private boolean eliminee = false;
 
-    
     private List<QG> villes = new ArrayList<QG>();
 
     private int nbSoldats = 0;
     private int nbArchers = 0;
     private int nbChevaliers = 0;
 
-    
     private int bonheur = 5;
+    private int cacheOr = 0;
 
     private Set<String> casesExplorees = new HashSet<String>();
 
@@ -73,7 +72,6 @@ public class Faction {
         if (calculerEnduranceTotale() <= 0) this.eliminee = true;
     }
 
-    
     public int calculerBonheur() {
         int base = bonheur;
         base -= Math.max(0, villes.size() - 1);
@@ -86,7 +84,6 @@ public class Faction {
         return calculerBonheur() < 0;
     }
 
-    
     public void ajouterVille(QG qg) {
         villes.add(qg);
     }
@@ -99,13 +96,11 @@ public class Faction {
         return villes;
     }
 
-    /** Returns first city — kept for backward compat */
     public QG getQG() {
         if (villes.isEmpty()) return null;
         return villes.get(0);
     }
 
-    /** Kept for backward compat — adds as city */
     public void setQG(QG qg) {
         if (!villes.contains(qg)) villes.add(qg);
     }
@@ -136,4 +131,6 @@ public class Faction {
     public void retirerChevalier()      { if (nbChevaliers > 0) nbChevaliers--; }
     public int getBonheur()             { return bonheur; }
     public void setBonheur(int b)       { this.bonheur = b; }
+    public int getCacheOr()             { return cacheOr; }
+    public void setCacheOr(int v)       { this.cacheOr = v; }
 }
