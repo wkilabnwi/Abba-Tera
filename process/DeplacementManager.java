@@ -23,11 +23,6 @@ public class DeplacementManager {
             return;
         }
 
-        if (moteur.getBatimentAt(nL, nC) != null) {
-            moteur.setDernierMouvement("Impossible : un batiment bloque le passage !");
-            return;
-        }
-
         if (moteur.getUniteAt(nL, nC) != null) {
             moteur.setDernierMouvement("Case occupee par une autre unite !");
             return;
@@ -43,32 +38,6 @@ public class DeplacementManager {
 
         int cout = 1;
         if (terrain.equals("FORET") && !u.getType().equals("Chevalier")) cout = 2;
-
-        String proprietaire = cible.getProprietaire();
-        if (!proprietaire.equals(u.getCamp()) && !moteur.getDiplomatieManager().sontAllies(u.getCamp(), proprietaire)) {
-            data.architecture.Batiment b = moteur.getBatimentAt(nL, nC);
-            if (b instanceof data.architecture.QG) {
-                data.architecture.QG qgCible = (data.architecture.QG) b;
-                if (qgCible.aUneGarnison()) {
-                    data.unites.Unite defenseur = qgCible.getPremierDefenseur();
-                    String log = moteur.getCombatManager().executerCombat(u, defenseur, cible);
-                    moteur.setDernierMouvement("Assaut sur " + qgCible.getNomVille() + " ! " + log);
-                    if (defenseur.estMort()) {
-                        moteur.getUnites().remove(defenseur);
-                        qgCible.retirerGarnison(defenseur);
-                        if (!qgCible.aUneGarnison()) {
-                            cible.setProprietaire(u.getCamp());
-                            u.setLigne(nL);
-                            u.setColonne(nC);
-                        }
-                    }
-                    if (u.estMort()) moteur.getUnites().remove(u);
-                    u.consommerDeplacement(u.getPointsDeplacement());
-                    return;
-                }
-            }
-            cible.setProprietaire(u.getCamp());
-        }
 
         u.setLigne(nL);
         u.setColonne(nC);

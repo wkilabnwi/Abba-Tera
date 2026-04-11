@@ -8,19 +8,19 @@ import data.unites.Unite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import process.MoteurJeu;
 
 public class FenetreJeu extends JFrame {
@@ -35,8 +35,8 @@ public class FenetreJeu extends JFrame {
 
     public FenetreJeu(MoteurJeu moteurRecu) {
         this.moteur = moteurRecu;
-        this.setUndecorated(true);
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
+        this.setSize(Config.LARGEUR_ECRAN, Config.HAUTEUR_ECRAN);
 
         this.panneau = new PanneauJeu(this.moteur);
         this.logs    = new LogPanel();
@@ -44,9 +44,8 @@ public class FenetreJeu extends JFrame {
 
         this.logs.setPreferredSize(new java.awt.Dimension(Config.LARGEUR_ECRAN, 50));
 
-        JPanel infoPanel = new JPanel(new BorderLayout());
+        JPanel infoPanel = new JPanel(new GridLayout(1, 3));
         infoPanel.setBackground(new Color(25, 25, 25));
-        infoPanel.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
 
         lblInfo = new JLabel("", SwingConstants.LEFT);
         lblInfo.setForeground(Color.YELLOW);
@@ -60,20 +59,9 @@ public class FenetreJeu extends JFrame {
         lblUnite.setForeground(new Color(180, 255, 180));
         lblUnite.setFont(new Font("Arial", Font.BOLD, 12));
 
-        JLabel lblControls = new JLabel(
-            "Fleches=Deplacer  ESPACE=Passer  ENTREE=Fin tour  D=Diplo  Q=Cite  S=Fonder  F=Brouillard  ESC=Pause",
-            SwingConstants.RIGHT);
-        lblControls.setForeground(Color.DARK_GRAY);
-        lblControls.setFont(new Font("Arial", Font.PLAIN, 10));
-
-        JPanel pRight = new JPanel(new BorderLayout());
-        pRight.setOpaque(false);
-        pRight.add(lblUnite, BorderLayout.NORTH);
-        pRight.add(lblControls, BorderLayout.SOUTH);
-
-        infoPanel.add(lblInfo, BorderLayout.WEST);
-        infoPanel.add(lblTour, BorderLayout.CENTER);
-        infoPanel.add(pRight, BorderLayout.EAST);
+        infoPanel.add(lblInfo);
+        infoPanel.add(lblTour);
+        infoPanel.add(lblUnite);
 
         this.setTitle("Abat-Terra");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -89,6 +77,10 @@ public class FenetreJeu extends JFrame {
         this.setFocusable(true);
         this.setVisible(true);
         this.requestFocusInWindow();
+
+        if (!Config.BROUILLARD_INITIAL) {
+            panneau.setBrouillard(false);
+        }
 
         rafraichir();
     }
@@ -132,19 +124,71 @@ public class FenetreJeu extends JFrame {
         traiterPropositionsAlliance();
 
         if (moteur.isPartieTerminee()) {
-            JOptionPane.showMessageDialog(this, moteur.getMessageFinPartie());
+            afficherDialogue("Fin de partie", moteur.getMessageFinPartie());
             System.exit(0);
         }
+    }
+
+    private void afficherDialogue(String titre, String message) {
+        JDialog d = new JDialog(this, titre, true);
+        d.setSize(400, 150);
+        d.setLocationRelativeTo(this);
+        d.setLayout(new GridLayout(2, 1, 10, 10));
+        JLabel lbl = new JLabel(message, SwingConstants.CENTER);
+        lbl.setFont(new Font("Arial", Font.BOLD, 14));
+        JButton btn = new JButton("OK");
+        btn.addActionListener(new FermerDialogueAction(d));
+        d.add(lbl);
+        d.add(btn);
+        d.setVisible(true);
+    }
+
+    private int afficherConfirmation(String titre, String message) {
+        JDialog d = new JDialog(this, titre, true);
+        d.setSize(400, 150);
+        d.setLocationRelativeTo(this);
+        d.setLayout(new GridLayout(2, 1, 10, 10));
+        JLabel lbl = new JLabel(message, SwingConstants.CENTER);
+        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        JPanel pBtns = new JPanel(new GridLayout(1, 2, 10, 0));
+        final int[] resultat = {1}; 
+        JButton btnOui = new JButton("Oui");
+        JButton btnNon = new JButton("Non");
+        btnOui.addActionListener(new OuiAction(resultat, d));
+        btnNon.addActionListener(new FermerDialogueAction(d));
+        pBtns.add(btnOui);
+        pBtns.add(btnNon);
+        d.add(lbl);
+        d.add(pBtns);
+        d.setVisible(true);
+        return resultat[0];
     }
 
     private void traiterPropositionsAlliance() {
         List<Faction> propositions = new ArrayList<Faction>(moteur.getPropositionsAlliance());
         for (Faction ia : propositions) {
-            int rep = JOptionPane.showConfirmDialog(this,
-                ia.getNom() + " propose une alliance.",
-                "Diplomatie", JOptionPane.YES_NO_OPTION);
-            if (rep == JOptionPane.YES_OPTION) moteur.accepterAlliance(ia);
+            int rep = afficherConfirmation("Diplomatie", ia.getNom() + " propose une alliance.");
+            if (rep == 0) moteur.accepterAlliance(ia);
             else moteur.refuserAlliance(ia);
+        }
+    }
+
+    private class FermerDialogueAction implements java.awt.event.ActionListener {
+        private JDialog dialog;
+        public FermerDialogueAction(JDialog dialog) { this.dialog = dialog; }
+        public void actionPerformed(java.awt.event.ActionEvent e) { dialog.dispose(); }
+    }
+
+    private class OuiAction implements java.awt.event.ActionListener {
+        private int[] resultat;
+        private JDialog dialog;
+        public OuiAction(int[] resultat, JDialog dialog) {
+            this.resultat = resultat;
+            this.dialog = dialog;
+        }
+        public void actionPerformed(java.awt.event.ActionEvent e) {
+            resultat[0] = 0;
+            dialog.dispose();
         }
     }
 
@@ -222,7 +266,7 @@ public class FenetreJeu extends JFrame {
             int col = e.getX() / Config.TAILLE_CASE;
             int lig = e.getY() / Config.TAILLE_CASE;
 
-            if (SwingUtilities.isRightMouseButton(e)) {
+            if (e.getButton() == MouseEvent.BUTTON3) {
                 Unite u = moteur.getUniteAt(lig, col);
                 if (u != null && "JOUEUR".equals(u.getCamp())) {
                     moteur.ajouterUniteAuCombat(u);
@@ -233,7 +277,7 @@ public class FenetreJeu extends JFrame {
                 } else if (moteur.estEnModeConstruction()) {
                     moteur.placerBatiment(lig, col);
                 } else {
-                    Unite u   = moteur.getUniteAt(lig, col);
+                    Unite u    = moteur.getUniteAt(lig, col);
                     Batiment b = moteur.getBatimentAt(lig, col);
                     Unite sel  = moteur.getUniteSelectionneeSurMap();
 

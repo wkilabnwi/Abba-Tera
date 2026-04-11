@@ -6,12 +6,10 @@ import data.architecture.Case;
 import data.architecture.QG;
 import data.unites.Unite;
 import process.MoteurJeu;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import java.awt.BasicStroke;
@@ -22,7 +20,6 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.RenderingHints;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -81,7 +78,6 @@ public class FenetreCite extends JDialog {
     private JPanel construireCentre() {
         JPanel p = new JPanel(new BorderLayout(10, 0));
         p.setOpaque(false);
-        p.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
         p.add(new CarteMiniatrue(moteur, qg, this), BorderLayout.WEST);
 
@@ -131,17 +127,16 @@ public class FenetreCite extends JDialog {
     private JPanel construireSud() {
         JPanel pBottom = new JPanel(new GridLayout(1, 2, 10, 0));
         pBottom.setOpaque(false);
-        pBottom.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
         JPanel pUnits = new JPanel(new GridLayout(2, 2, 5, 5));
-        pUnits.setBorder(BorderFactory.createTitledBorder(null, "UNITES", 0, 0, null, Color.WHITE));
+        pUnits.add(createLabel("-- UNITES --", Color.WHITE));
         pUnits.add(creerBoutonProd("Soldat",    40,  2));
         pUnits.add(creerBoutonProd("Archer",    60,  3));
         pUnits.add(creerBoutonProd("Chevalier", 120, 5));
         pUnits.add(creerBoutonProd("Colon",     200, 8));
 
         JPanel pBuilds = new JPanel(new GridLayout(3, 2, 5, 5));
-        pBuilds.setBorder(BorderFactory.createTitledBorder(null, "BATIMENTS", 0, 0, null, Color.YELLOW));
+        pBuilds.add(createLabel("-- BATIMENTS --", Color.YELLOW));
 
         if (!qg.hasBuilding("Grenier")) {
             pBuilds.add(creerBoutonProd("Grenier", 80, 3));
@@ -190,6 +185,26 @@ public class FenetreCite extends JDialog {
         new FenetreCite((JFrame) getOwner(), moteur, qg).setVisible(true);
     }
 
+    private void afficherMessage(String message) {
+        JDialog d = new JDialog(this, "Information", true);
+        d.setSize(380, 120);
+        d.setLocationRelativeTo(this);
+        d.setLayout(new GridLayout(2, 1, 5, 5));
+        JLabel lbl = new JLabel(message, SwingConstants.CENTER);
+        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        JButton btn = new JButton("OK");
+        btn.addActionListener(new FermerDialogueAction(d));
+        d.add(lbl);
+        d.add(btn);
+        d.setVisible(true);
+    }
+
+    private class FermerDialogueAction implements ActionListener {
+        private JDialog dialog;
+        public FermerDialogueAction(JDialog dialog) { this.dialog = dialog; }
+        public void actionPerformed(ActionEvent e) { dialog.dispose(); }
+    }
+
     private class CommanderConstructionAction implements ActionListener {
         private String nom;
         private int prix;
@@ -201,7 +216,7 @@ public class FenetreCite extends JDialog {
 
         public void actionPerformed(ActionEvent e) {
             if (moteur.getFactionJoueur().getOr() < prix) {
-                JOptionPane.showMessageDialog(FenetreCite.this, "Or insuffisant !");
+                afficherMessage("Or insuffisant !");
                 return;
             }
             moteur.getFactionJoueur().retirerOr(prix);
@@ -223,8 +238,7 @@ public class FenetreCite extends JDialog {
 
         public void actionPerformed(ActionEvent e) {
             if (!qg.getProjetEnCours().equals("Aucun")) {
-                JOptionPane.showMessageDialog(FenetreCite.this,
-                    "Projet en cours : " + qg.getProjetEnCours());
+                afficherMessage("Projet en cours : " + qg.getProjetEnCours());
                 return;
             }
             if (moteur.getFactionJoueur().getOr() >= prix) {
@@ -232,7 +246,7 @@ public class FenetreCite extends JDialog {
                 qg.setProjetEnCours(nom, tours);
                 rafraichirFenetre();
             } else {
-                JOptionPane.showMessageDialog(FenetreCite.this, "Or insuffisant !");
+                afficherMessage("Or insuffisant !");
             }
         }
     }
@@ -241,19 +255,16 @@ public class FenetreCite extends JDialog {
         public void actionPerformed(ActionEvent e) {
             data.unites.Unite sel = moteur.getUniteSelectionneeSurMap();
             if (sel == null || !sel.getCamp().equals("JOUEUR")) {
-                JOptionPane.showMessageDialog(FenetreCite.this,
-                    "Selectionnez d'abord une unite sur la carte !");
+                afficherMessage("Selectionnez d'abord une unite sur la carte !");
                 return;
             }
             if (sel.getType().equals("Colon")) {
-                JOptionPane.showMessageDialog(FenetreCite.this,
-                    "Un Colon ne peut pas tenir garnison !");
+                afficherMessage("Un Colon ne peut pas tenir garnison !");
                 return;
             }
             int dist = Math.abs(sel.getLigne() - qg.getLigne()) + Math.abs(sel.getColonne() - qg.getColonne());
             if (dist > qg.getRayonCulture() + 1) {
-                JOptionPane.showMessageDialog(FenetreCite.this,
-                    "L'unite doit etre proche de la cite !");
+                afficherMessage("L'unite doit etre proche de la cite !");
                 return;
             }
             qg.ajouterGarnison(sel);
@@ -272,8 +283,7 @@ public class FenetreCite extends JDialog {
             data.unites.Unite dernier = qg.getGarnison().get(qg.getGarnison().size() - 1);
             int[] pos = trouverCaseLibre();
             if (pos == null) {
-                JOptionPane.showMessageDialog(FenetreCite.this,
-                    "Pas de place adjacente pour deployer l'unite !");
+                afficherMessage("Pas de place adjacente pour deployer l'unite !");
                 return;
             }
             dernier.setLigne(pos[0]);
@@ -330,7 +340,6 @@ public class FenetreCite extends JDialog {
             imgFerme    = PanneauJeu.lireImage("res/Ferme.png");
             int size = (RAYON_AFFICHE * 2 + 1) * TILE;
             this.setPreferredSize(new Dimension(size, size));
-            this.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 2));
             this.setBackground(Color.BLACK);
             this.addMouseListener(new TileClickAction());
         }
@@ -338,7 +347,6 @@ public class FenetreCite extends JDialog {
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             int diam    = RAYON_AFFICHE * 2 + 1;
             int centerL = qg.getLigne();
@@ -371,6 +379,11 @@ public class FenetreCite extends JDialog {
                     g2.drawRect(px, py, TILE, TILE);
                 }
             }
+
+            g2.setColor(Color.YELLOW);
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+            g2.setStroke(new BasicStroke(1));
         }
 
         private void drawTerrain(Graphics2D g2, Case laCase, int px, int py) {
@@ -480,7 +493,7 @@ public class FenetreCite extends JDialog {
                 g2.drawImage(img, px, py, TILE, TILE, null);
             } else {
                 g2.setColor(Color.WHITE);
-                g2.fillRoundRect(px + 10, py + 10, TILE - 20, TILE - 20, 6, 6);
+                g2.fillRect(px + 10, py + 10, TILE - 20, TILE - 20);
             }
             if (b instanceof QG) {
                 g2.setColor(Color.WHITE);
@@ -548,8 +561,7 @@ public class FenetreCite extends JDialog {
                     qg.desassignerCase(cle);
                 } else {
                     if (qg.getNbTravailleurs() >= maxTravailleurs) {
-                        JOptionPane.showMessageDialog(CarteMiniatrue.this,
-                            "Tous les travailleurs sont assignes !");
+                        afficherMessage("Tous les travailleurs sont assignes !");
                         return;
                     }
                     qg.assignerCase(cle);

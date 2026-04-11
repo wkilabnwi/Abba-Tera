@@ -19,4 +19,6 @@ public class Config {
     public static final int OR_PAR_FERME = 10;
 
     public static final int RAYON_VISION = 1;
+
+    public static boolean BROUILLARD_INITIAL = true;
 }

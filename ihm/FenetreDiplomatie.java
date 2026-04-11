@@ -8,15 +8,12 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerNumberModel;
+import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import process.MoteurJeu;
 
@@ -33,10 +30,8 @@ public class FenetreDiplomatie extends JDialog {
 
         JLabel titre = new JLabel("Relations diplomatiques", SwingConstants.CENTER);
         titre.setFont(new Font("Serif", Font.BOLD, 18));
-        titre.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
 
         JPanel pFactions = new JPanel(new GridLayout(3, 1, 10, 10));
-        pFactions.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         List<Faction> factions = moteur.getFactions();
         for (Faction f : factions) {
@@ -60,7 +55,6 @@ public class FenetreDiplomatie extends JDialog {
 
     private JPanel creerLigneFaction(Faction f) {
         JPanel p = new JPanel(new BorderLayout(10, 0));
-        p.setBorder(BorderFactory.createEtchedBorder());
 
         boolean allie = moteur.getDiplomatieManager()
             .sontAllies("JOUEUR", f.getNom());
@@ -85,16 +79,14 @@ public class FenetreDiplomatie extends JDialog {
             btnTrahir.setForeground(Color.RED);
             btnTrahir.addActionListener(new TrahirAction(f));
 
-            SpinnerNumberModel model = new SpinnerNumberModel(
-                50, 10,
-                Math.max(10, moteur.getFactionJoueur().getOr()), 10);
-            JSpinner spinner = new JSpinner(model);
+            JTextField champMontant = new JTextField("50");
+            champMontant.setFont(new Font("Arial", Font.PLAIN, 12));
 
             JButton btnTransfert = new JButton("Envoyer Or");
-            btnTransfert.addActionListener(new TransfertAction(f, spinner));
+            btnTransfert.addActionListener(new TransfertAction(f, champMontant));
 
             pBoutons.add(btnTrahir);
-            pBoutons.add(spinner);
+            pBoutons.add(champMontant);
             pBoutons.add(btnTransfert);
         }
 
@@ -103,39 +95,78 @@ public class FenetreDiplomatie extends JDialog {
         return p;
     }
 
+    private void afficherMessage(String titre, String message) {
+        JDialog d = new JDialog(this, titre, true);
+        d.setSize(400, 130);
+        d.setLocationRelativeTo(this);
+        d.setLayout(new GridLayout(2, 1, 5, 5));
+        JLabel lbl = new JLabel(message, SwingConstants.CENTER);
+        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        JButton btn = new JButton("OK");
+        btn.addActionListener(new FermerDialogueAction(d));
+        d.add(lbl);
+        d.add(btn);
+        d.setVisible(true);
+    }
 
+    private int afficherConfirmation(String titre, String message) {
+        JDialog d = new JDialog(this, titre, true);
+        d.setSize(420, 130);
+        d.setLocationRelativeTo(this);
+        d.setLayout(new GridLayout(2, 1, 5, 5));
+        JLabel lbl = new JLabel(message, SwingConstants.CENTER);
+        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        JPanel pBtns = new JPanel(new GridLayout(1, 2, 10, 0));
+        final int[] resultat = {1};
+        JButton btnOui = new JButton("Oui");
+        JButton btnNon = new JButton("Non");
+        btnOui.addActionListener(new OuiAction(resultat, d));
+        btnNon.addActionListener(new FermerDialogueAction(d));
+        pBtns.add(btnOui);
+        pBtns.add(btnNon);
+        d.add(lbl);
+        d.add(pBtns);
+        d.setVisible(true);
+        return resultat[0];
+    }
 
+    private class FermerDialogueAction implements ActionListener {
+        private JDialog dialog;
+        public FermerDialogueAction(JDialog dialog) { this.dialog = dialog; }
+        public void actionPerformed(ActionEvent e) { dialog.dispose(); }
+    }
 
+    private class OuiAction implements ActionListener {
+        private int[] resultat;
+        private JDialog dialog;
+        public OuiAction(int[] resultat, JDialog dialog) {
+            this.resultat = resultat;
+            this.dialog = dialog;
+        }
+        public void actionPerformed(ActionEvent e) {
+            resultat[0] = 0;
+            dialog.dispose();
+        }
+    }
 
     private class ProposeAllianceAction implements ActionListener {
         private Faction cible;
-
-        public ProposeAllianceAction(Faction cible) {
-            this.cible = cible;
-        }
-
+        public ProposeAllianceAction(Faction cible) { this.cible = cible; }
         public void actionPerformed(ActionEvent e) {
             moteur.proposerAllianceJoueur(cible);
-            JOptionPane.showMessageDialog(FenetreDiplomatie.this,
-                "Alliance proposee a " + cible.getNom() + " !\n"
-                + "Droit de passage et vision partages actives.",
-                "Alliance", JOptionPane.INFORMATION_MESSAGE);
+            afficherMessage("Alliance",
+                "Alliance proposee a " + cible.getNom() + " ! Vision partagee activee.");
             dispose();
         }
     }
 
     private class TrahirAction implements ActionListener {
         private Faction cible;
-
-        public TrahirAction(Faction cible) {
-            this.cible = cible;
-        }
-
+        public TrahirAction(Faction cible) { this.cible = cible; }
         public void actionPerformed(ActionEvent e) {
-            int rep = JOptionPane.showConfirmDialog(FenetreDiplomatie.this,
-                "Trahir " + cible.getNom() + " ? L'etat de guerre reprend immediatement.",
-                "Trahison", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (rep == JOptionPane.YES_OPTION) {
+            int rep = afficherConfirmation("Trahison",
+                "Trahir " + cible.getNom() + " ? L'etat de guerre reprend.");
+            if (rep == 0) {
                 moteur.trahir(cible);
                 dispose();
             }
@@ -144,26 +175,26 @@ public class FenetreDiplomatie extends JDialog {
 
     private class TransfertAction implements ActionListener {
         private Faction cible;
-        private JSpinner spinner;
-
-        public TransfertAction(Faction cible, JSpinner spinner) {
+        private JTextField champMontant;
+        public TransfertAction(Faction cible, JTextField champMontant) {
             this.cible = cible;
-            this.spinner = spinner;
+            this.champMontant = champMontant;
         }
-
         public void actionPerformed(ActionEvent e) {
-            int montant = (Integer) spinner.getValue();
+            int montant = 50;
+            try {
+                montant = Integer.parseInt(champMontant.getText().trim());
+            } catch (NumberFormatException ex) {
+                montant = 50;
+            }
             String log = moteur.getDiplomatieManager().transfererRessources(
                 moteur.getFactionJoueur(), cible, montant);
-            JOptionPane.showMessageDialog(FenetreDiplomatie.this, log,
-                "Transfert", JOptionPane.INFORMATION_MESSAGE);
+            afficherMessage("Transfert", log);
             dispose();
         }
     }
 
     private class FermerAction implements ActionListener {
-        public void actionPerformed(ActionEvent e) {
-            dispose();
-        }
+        public void actionPerformed(ActionEvent e) { dispose(); }
     }
 }

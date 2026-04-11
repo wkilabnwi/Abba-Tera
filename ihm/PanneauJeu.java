@@ -17,7 +17,6 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.RenderingHints;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -33,15 +32,21 @@ public class PanneauJeu extends JPanel {
         brouillardActif = !brouillardActif;
         repaint();
     }
+
+    public void setBrouillard(boolean actif) {
+        brouillardActif = actif;
+        repaint();
+    }
+
     private Image eauImg, foretImg, montagneImg, plaineImg;
     private Image joueurImg, ennemiImg;
     private Image qgImg, caserneImg, fermeImg, mineImg;
 
-    private static final Color COULEUR_JOUEUR = new Color(0,   0,   255, 55);
-    private static final Color COULEUR_IA1    = new Color(220, 0,   0,   70);
-    private static final Color COULEUR_IA2    = new Color(220, 120, 0,   70);
-    private static final Color COULEUR_IA3    = new Color(140, 0,   200, 70);
-    private static final Color COULEUR_RIVIERE = new Color(24, 69, 150, 200);
+    private static final Color COULEUR_JOUEUR  = new Color(0,   0,   255, 55);
+    private static final Color COULEUR_IA1     = new Color(220, 0,   0,   70);
+    private static final Color COULEUR_IA2     = new Color(220, 120, 0,   70);
+    private static final Color COULEUR_IA3     = new Color(140, 0,   200, 70);
+    private static final Color COULEUR_RIVIERE = new Color(24,  69,  150, 200);
 
     public PanneauJeu(MoteurJeu moteur) {
         this.moteur = moteur;
@@ -55,6 +60,7 @@ public class PanneauJeu extends JPanel {
         caserneImg  = lireImage("res/Caserne.png");
         fermeImg    = lireImage("res/Ferme.png");
         mineImg     = lireImage("res/Mine.png");
+        brouillardActif = Config.BROUILLARD_INITIAL;
     }
 
     public static Image lireImage(String filePath) {
@@ -66,11 +72,9 @@ public class PanneauJeu extends JPanel {
         }
     }
 
-    @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         dessinerTerrain(g2);
         dessinerBorduresCulture(g2);
         dessinerBatiments(g2);
@@ -207,7 +211,7 @@ public class PanneauJeu extends JPanel {
                     g2.fillRect(x + 4, y + 4, T - 8, T - 8);
                     g2.setColor(Color.YELLOW);
                     g2.setFont(new Font("Arial", Font.BOLD, 9));
-                    g2.drawString("M", x + T/2 - 3, y + T/2 + 3);
+                    g2.drawString("M", x + T / 2 - 3, y + T / 2 + 3);
                 } else {
                     g2.setColor(Color.WHITE);
                     g2.fillRect(x + 4, y + 4, T - 8, T - 8);
@@ -218,14 +222,23 @@ public class PanneauJeu extends JPanel {
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Arial", Font.BOLD, 9));
                 g2.drawString(qg.getNomVille(), x, y - 2);
+
+                float hpRatio = (float) qg.getPv() / qg.getPvMax();
+                g2.setColor(hpRatio > 0.5f ? new Color(0, 200, 0) : Color.RED);
+                g2.fillRect(x, y, (int)(T * hpRatio), 4);
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawRect(x, y, T, 4);
+
                 if (qg.aUneGarnison()) {
                     g2.setColor(new Color(100, 220, 100, 180));
                     g2.fillRect(x, y + T - 14, T, 14);
                     g2.setColor(Color.BLACK);
                     g2.setFont(new Font("Arial", Font.BOLD, 9));
-                    StringBuilder garStr = new StringBuilder("G:");
+                    StringBuilder garStr = new StringBuilder("G(" + qg.getGarnison().size() + "):");
                     for (data.unites.Unite gu : qg.getGarnison()) {
                         garStr.append(gu.getType().substring(0, 1));
+                        garStr.append(gu.getPv());
+                        garStr.append(" ");
                     }
                     g2.drawString(garStr.toString(), x + 2, y + T - 3);
                 }
@@ -248,10 +261,10 @@ public class PanneauJeu extends JPanel {
                 g2.fillOval(x + 4, y + 4, T - 8, T - 8);
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Arial", Font.BOLD, 10));
-                g2.drawString("C", x + T/2 - 4, y + T/2 + 4);
+                g2.drawString("C", x + T / 2 - 4, y + T / 2 + 4);
                 float ratio = (float) u.getPv() / u.getPvMax();
                 g2.setColor(Color.RED);
-                g2.fillRect(x, y + T - 4, (int)(T * ratio), 4);
+                g2.fillRect(x, y + T - 4, (int) (T * ratio), 4);
                 continue;
             }
 
