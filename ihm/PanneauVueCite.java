@@ -1,19 +1,18 @@
 package ihm;
 
-import config.Config;
 import data.architecture.Case;
 import data.architecture.QG;
 import javax.swing.JPanel;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Color;
-import process.MoteurJeu;
+import process.MoteurInterface;
 
 public class PanneauVueCite extends JPanel {
-    private MoteurJeu moteur;
+    private MoteurInterface moteur;
     private QG qg;
 
-    public PanneauVueCite(MoteurJeu moteur, QG qg) {
+    public PanneauVueCite(MoteurInterface moteur, QG qg) {
         this.moteur = moteur;
         this.qg = qg;
         this.setPreferredSize(new Dimension(200, 200));

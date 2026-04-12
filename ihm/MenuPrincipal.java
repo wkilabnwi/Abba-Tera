@@ -13,13 +13,14 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import config.Config;
 import process.MoteurJeu;
+import process.MoteurInterface;
 
-public class MenuPrincipal extends JFrame {
+public class MenuPrincipal extends JFrame implements Runnable {
 
-    private MoteurJeu moteur;
+    private MoteurInterface moteur;
     private JCheckBox checkBrouillard;
 
-    public MenuPrincipal(MoteurJeu moteur) {
+    public MenuPrincipal(MoteurInterface moteur) {
         this.moteur = moteur;
         this.setTitle("ABAT-TERRA - Menu Principal");
         this.setSize(400, 340);
@@ -52,6 +53,9 @@ public class MenuPrincipal extends JFrame {
         this.add(btnQuitter);
 
         this.setVisible(true);
+    }
+
+    public void run() {
     }
 
     private class DemarrerPartieAction implements ActionListener {

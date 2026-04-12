@@ -12,7 +12,7 @@ import data.unites.Unite;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MoteurJeu {
+public class MoteurJeu implements MoteurInterface {
 
     private Carte carte;
     private List<Unite> unites;

@@ -3,7 +3,7 @@ package ihm;
 import data.architecture.Case;
 import data.unites.Unite;
 import process.CombatManager;
-import process.MoteurJeu;
+import process.MoteurInterface;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -26,7 +26,7 @@ public class FenetreCombat extends JDialog {
     private Unite defenseur;
     private Case caseCible;
     private CombatManager combatManager;
-    private MoteurJeu moteur;
+    private MoteurInterface moteur;
 
     private JLabel lblStatut;
     private JProgressBar barreAttaquant;
@@ -35,7 +35,7 @@ public class FenetreCombat extends JDialog {
     private boolean combatTermine = false;
 
     public FenetreCombat(JFrame parent, Unite attaquant, Unite defenseur,
-                         Case caseCible, CombatManager cm, MoteurJeu moteur) {
+                         Case caseCible, CombatManager cm, MoteurInterface moteur) {
         super(parent, "Combat Tactique", true);
         this.attaquant     = attaquant;
         this.defenseur     = defenseur;

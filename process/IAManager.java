@@ -15,6 +15,8 @@ public class IAManager {
     private Random random = new Random();
     private int tourDepuisRecrutement = 0;
     private int tourTotal = 0;
+    private int targetLigne;
+    private int targetColonne;
 
     private static final int INTERVALLE_RECRUTEMENT = 8;
     private static final int TOURS_AVANT_AGRESSION  = 6;
@@ -22,9 +24,13 @@ public class IAManager {
 
     public IAManager(Faction faction, int targetLigne, int targetColonne) {
         this.faction = faction;
+        this.targetLigne = targetLigne;
+        this.targetColonne = targetColonne;
     }
 
     public void mettreAJourCible(int targetLigne, int targetColonne) {
+        this.targetLigne = targetLigne;
+        this.targetColonne = targetColonne;
     }
 
     public void jouerTour(List<Unite> unites, Carte carte, MoteurJeu moteur) {
@@ -76,7 +82,6 @@ public class IAManager {
         int r = random.nextInt(6);
         if (r == 0) return "Archer";
         if (r == 1) return "Chevalier";
-        if (r == 2) return "Archer";
         return "Soldat";
     }
 
@@ -98,7 +103,7 @@ public class IAManager {
                 String log = moteur.getCombatManager().executerCombat(u, cible, caseCible);
                 moteur.setDernierMouvement("[" + faction.getNom() + "] " + log);
                 if (cible.estMort()) unites.remove(cible);
-                if (u.estMort())     { unites.remove(u); return true; }
+                if (u.estMort()) { unites.remove(u); return true; }
                 return true;
             }
         }
@@ -120,10 +125,10 @@ public class IAManager {
 
     private void deplacerVersNearestEnnemi(Unite u, List<Unite> unites, Carte carte, MoteurJeu moteur) {
         int[] cible = trouverCibleLaPlusProche(u, unites, moteur);
-        if (cible == null) return;
 
-        int targetL = cible[0];
-        int targetC = cible[1];
+        // If no enemy unit/building found, move towards stored target (player QG)
+        int targetL = (cible != null) ? cible[0] : targetLigne;
+        int targetC = (cible != null) ? cible[1] : targetColonne;
 
         int[] dl = {-1, 1, 0, 0};
         int[] dc = {0, 0, -1, 1};
@@ -157,7 +162,7 @@ public class IAManager {
     }
 
     private int[] trouverCibleLaPlusProche(Unite u, List<Unite> unites, MoteurJeu moteur) {
-        int bestDist   = Integer.MAX_VALUE;
+        int bestDist  = Integer.MAX_VALUE;
         int[] bestCible = null;
 
         for (Unite cible : unites) {
@@ -166,8 +171,8 @@ public class IAManager {
             if (moteur.getDiplomatieManager().sontAllies(faction.getNom(), cible.getCamp())) continue;
             int d = distance(u.getLigne(), u.getColonne(), cible.getLigne(), cible.getColonne());
             if (d < bestDist) {
-                bestDist   = d;
-                bestCible  = new int[]{cible.getLigne(), cible.getColonne()};
+                bestDist  = d;
+                bestCible = new int[]{cible.getLigne(), cible.getColonne()};
             }
         }
 
@@ -191,15 +196,11 @@ public class IAManager {
             if (!qg.getProjetEnCours().equals("Aucun")) continue;
             if (faction.getOr() < 40) continue;
 
-            int unitesSurCarte = 0;
-            for (Batiment b : moteur.getBatiments()) {
-                if (b.getProprietaire().equals(faction.getNom())) unitesSurCarte++;
-            }
-
             String projet;
             int cout;
             int tours;
             int r = random.nextInt(5);
+
             if (r == 0 && faction.getOr() >= 120) {
                 projet = "Chevalier"; cout = 120; tours = 5;
             } else if (r == 1 && faction.getOr() >= 60) {

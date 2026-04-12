@@ -15,13 +15,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import process.MoteurJeu;
+import process.MoteurInterface;
 
 public class FenetreDiplomatie extends JDialog {
 
-    private MoteurJeu moteur;
+    private MoteurInterface moteur;
 
-    public FenetreDiplomatie(JFrame parent, MoteurJeu moteur) {
+    public FenetreDiplomatie(JFrame parent, MoteurInterface moteur) {
         super(parent, "Diplomatie", true);
         this.moteur = moteur;
         this.setSize(500, 400);

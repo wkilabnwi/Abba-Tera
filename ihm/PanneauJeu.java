@@ -10,7 +10,8 @@ import data.architecture.Mine;
 import data.architecture.QG;
 import data.unites.Faction;
 import data.unites.Unite;
-import process.MoteurJeu;
+import process.MoteurInterface;
+import process.MoteurInterface;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -19,13 +20,12 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 public class PanneauJeu extends JPanel {
 
-    private MoteurJeu moteur;
+    private MoteurInterface moteur;
     private boolean brouillardActif = true;
 
     public void toggleBrouillard() {
@@ -48,7 +48,7 @@ public class PanneauJeu extends JPanel {
     private static final Color COULEUR_IA3     = new Color(140, 0,   200, 70);
     private static final Color COULEUR_RIVIERE = new Color(24,  69,  150, 200);
 
-    public PanneauJeu(MoteurJeu moteur) {
+    public PanneauJeu(MoteurInterface moteur) {
         this.moteur = moteur;
         eauImg      = lireImage("res/Eau.png");
         plaineImg   = lireImage("res/Grass.png");

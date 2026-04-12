@@ -21,11 +21,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
-import process.MoteurJeu;
+import process.MoteurInterface;
 
 public class FenetreJeu extends JFrame {
 
-    private MoteurJeu moteur;
+    private MoteurInterface moteur;
     private PanneauJeu panneau;
     private LogPanel logs;
     private FenetreGestion gestion;
@@ -33,7 +33,7 @@ public class FenetreJeu extends JFrame {
     private JLabel lblTour;
     private JLabel lblUnite;
 
-    public FenetreJeu(MoteurJeu moteurRecu) {
+    public FenetreJeu(MoteurInterface moteurRecu) {
         this.moteur = moteurRecu;
 
         this.setSize(Config.LARGEUR_ECRAN, Config.HAUTEUR_ECRAN);

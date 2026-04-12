@@ -5,7 +5,7 @@ import data.architecture.Batiment;
 import data.architecture.Case;
 import data.architecture.QG;
 import data.unites.Unite;
-import process.MoteurJeu;
+import process.MoteurInterface;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -28,10 +28,10 @@ import java.awt.event.MouseEvent;
 
 public class FenetreCite extends JDialog {
 
-    private MoteurJeu moteur;
+    private MoteurInterface moteur;
     private QG qg;
 
-    public FenetreCite(JFrame parent, MoteurJeu moteur, QG qg) {
+    public FenetreCite(JFrame parent, MoteurInterface moteur, QG qg) {
         super(parent, "Cite : " + qg.getNomVille() + " [" + qg.getProprietaire() + "]", true);
         this.moteur = moteur;
         this.qg = qg;
@@ -313,7 +313,7 @@ public class FenetreCite extends JDialog {
     }
 
     private class CarteMiniatrue extends JPanel {
-        private MoteurJeu moteur;
+        private MoteurInterface moteur;
         private QG qg;
         private FenetreCite parent;
 
@@ -328,7 +328,7 @@ public class FenetreCite extends JDialog {
         private Image imgCaserne;
         private Image imgFerme;
 
-        public CarteMiniatrue(MoteurJeu moteur, QG qg, FenetreCite parent) {
+        public CarteMiniatrue(MoteurInterface moteur, QG qg, FenetreCite parent) {
             this.moteur = moteur;
             this.qg = qg;
             this.parent = parent;
