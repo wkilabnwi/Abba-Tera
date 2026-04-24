@@ -1,6 +1,8 @@
 package ihm;
 
 import config.Config;
+import java.util.ArrayList;
+import java.util.List;
 import data.architecture.Batiment;
 import data.architecture.Carte;
 import data.architecture.Case;
@@ -306,17 +308,27 @@ public class PanneauJeu extends JPanel {
     }
 
     private void dessinerBrouillard(Graphics2D g2) {
-        int T = Config.TAILLE_CASE;
-        Faction joueur = moteur.getFactionJoueur();
-        for (int l = 0; l < Config.NB_LIGNES; l++) {
-            for (int c = 0; c < Config.NB_COLONNES; c++) {
-                if (!joueur.aExplore(l, c)) {
-                    g2.setColor(new Color(0, 0, 0, 200));
-                    g2.fillRect(c * T, l * T, T, T);
-                }
+    int T = Config.TAILLE_CASE;
+    Faction joueur = moteur.getFactionJoueur();
+    List<String> alliesNoms = moteur.getDiplomatieManager().getVisionsPartagees("JOUEUR", moteur.getFactions());
+    List<Faction> allies = new ArrayList<Faction>();
+    for (Faction f : moteur.getFactions()) {
+        if (alliesNoms.contains(f.getNom())) allies.add(f);
+    }
+    for (int l = 0; l < Config.NB_LIGNES; l++) {
+        for (int c = 0; c < Config.NB_COLONNES; c++) {
+            if (joueur.aExplore(l, c)) continue;
+            boolean vuParAllie = false;
+            for (Faction allie : allies) {
+                if (allie.aExplore(l, c)) { vuParAllie = true; break; }
+            }
+            if (!vuParAllie) {
+                g2.setColor(new Color(0, 0, 0, 200));
+                g2.fillRect(c * T, l * T, T, T);
             }
         }
     }
+}
 
     private void dessinerGrille(Graphics2D g2) {
         int T = Config.TAILLE_CASE;

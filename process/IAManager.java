@@ -126,7 +126,6 @@ public class IAManager {
     private void deplacerVersNearestEnnemi(Unite u, List<Unite> unites, Carte carte, MoteurJeu moteur) {
         int[] cible = trouverCibleLaPlusProche(u, unites, moteur);
 
-        // If no enemy unit/building found, move towards stored target (player QG)
         int targetL = (cible != null) ? cible[0] : targetLigne;
         int targetC = (cible != null) ? cible[1] : targetColonne;
 
